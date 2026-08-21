@@ -27,6 +27,15 @@ impl GraphStore {
         store
     }
 
+    pub fn target_dir(&self) -> &PathBuf {
+        &self.target_dir
+    }
+
+    /// Switch indexing root and reopen the `.byterag` DB under the new path.
+    pub fn set_target_dir(&mut self, target_dir: PathBuf) {
+        *self = Self::new(target_dir);
+    }
+
     pub fn index_directory(&mut self) {
         for entry in walkdir::WalkDir::new(&self.target_dir).into_iter().filter_map(|e| e.ok()) {
             let path = entry.path();

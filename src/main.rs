@@ -119,8 +119,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             serde_json::to_string_pretty(&matches)?
                         }
                         "byterag_reindex" => {
-                            store.index_directory();
-                            "Successfully re-indexed project directory.".to_string()
+                            if let Some(dir) = args
+                                .and_then(|a| a.get("target_dir"))
+                                .and_then(|s| s.as_str())
+                                .filter(|s| !s.is_empty())
+                            {
+                                store.set_target_dir(PathBuf::from(dir));
+                            } else {
+                                store.index_directory();
+                            }
+                            format!(
+                                "Successfully re-indexed: {}",
+                                store.target_dir().display()
+                            )
                         }
                         _ => "Unknown tool".to_string(),
                     };
