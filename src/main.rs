@@ -2,11 +2,13 @@ mod parser;
 mod store;
 mod types;
 
-use store::GraphStore;
 use serde_json::{json, Value};
 use std::env;
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
+use std::sync::{Arc, RwLock};
+use std::thread;
+use store::GraphStore;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -14,8 +16,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(PathBuf::from)
         .unwrap_or_else(|_| env::current_dir().unwrap_or_default());
 
-    let mut store = GraphStore::new(target_dir.clone());
-    store.index_directory();
+    // Open DB only — do not block MCP initialize on a full tree walk.
+    let store = Arc::new(RwLock::new(GraphStore::open(target_dir)));
+
+    {
+        let store_bg = Arc::clone(&store);
+        thread::spawn(move || {
+            let Ok(guard) = store_bg.read() else {
+                return;
+            };
+            guard.index_directory();
+        });
+    }
 
     let stdin = io::stdin();
     let mut stdout = io::stdout();
@@ -69,7 +81,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 },
                                 {
                                     "name": "byterag_search_symbols",
-                                    "description": "Search symbols in project by query string.",
+                                    "description": "Search symbols in project by query string (exact node id, lowercased).",
                                     "inputSchema": {
                                         "type": "object",
                                         "properties": { "query": { "type": "string" } },
@@ -78,7 +90,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 },
                                 {
                                     "name": "byterag_reindex",
-                                    "description": "Force re-indexing target project directory.",
+                                    "description": "Re-index now. Optional target_dir switches the indexing root first. Prefer a crate/subtree, not a huge monorepo root.",
                                     "inputSchema": {
                                         "type": "object",
                                         "properties": { "target_dir": { "type": "string" } }
@@ -92,7 +104,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 "tools/call" => {
                     let params = req.get("params");
-                    let tool_name = params.and_then(|p| p.get("name")).and_then(|n| n.as_str()).unwrap_or("");
+                    let tool_name = params
+                        .and_then(|p| p.get("name"))
+                        .and_then(|n| n.as_str())
+                        .unwrap_or("");
                     let args = params.and_then(|p| p.get("arguments"));
 
                     let content_text = match tool_name {
@@ -102,32 +117,43 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             if let Some(s) = single {
                                 seeds.push(s.to_string());
                             }
-                            if let Some(arr) = args.and_then(|a| a.get("node_ids")).and_then(|arr| arr.as_array()) {
+                            if let Some(arr) = args
+                                .and_then(|a| a.get("node_ids"))
+                                .and_then(|arr| arr.as_array())
+                            {
                                 for item in arr {
                                     if let Some(s) = item.as_str() {
                                         seeds.push(s.to_string());
                                     }
                                 }
                             }
-                            let max_depth = args.and_then(|a| a.get("max_depth")).and_then(|n| n.as_u64()).unwrap_or(2) as usize;
+                            let max_depth = args
+                                .and_then(|a| a.get("max_depth"))
+                                .and_then(|n| n.as_u64())
+                                .unwrap_or(2) as usize;
+                            let store = store.read().map_err(|e| e.to_string())?;
                             let sub_graph = store.query_subgraph(&seeds, max_depth);
                             serde_json::to_string_pretty(&sub_graph)?
                         }
                         "byterag_search_symbols" => {
-                            let query = args.and_then(|a| a.get("query")).and_then(|s| s.as_str()).unwrap_or("");
+                            let query = args
+                                .and_then(|a| a.get("query"))
+                                .and_then(|s| s.as_str())
+                                .unwrap_or("");
+                            let store = store.read().map_err(|e| e.to_string())?;
                             let matches = store.search_symbols(query);
                             serde_json::to_string_pretty(&matches)?
                         }
                         "byterag_reindex" => {
+                            let mut store = store.write().map_err(|e| e.to_string())?;
                             if let Some(dir) = args
                                 .and_then(|a| a.get("target_dir"))
                                 .and_then(|s| s.as_str())
                                 .filter(|s| !s.is_empty())
                             {
                                 store.set_target_dir(PathBuf::from(dir));
-                            } else {
-                                store.index_directory();
                             }
+                            store.index_directory();
                             format!(
                                 "Successfully re-indexed: {}",
                                 store.target_dir().display()
