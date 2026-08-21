@@ -1,0 +1,144 @@
+mod parser;
+mod store;
+mod types;
+
+use store::GraphStore;
+use serde_json::{json, Value};
+use std::env;
+use std::io::{self, BufRead, Write};
+use std::path::PathBuf;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let target_dir = env::var("BYTERAG_TARGET_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| env::current_dir().unwrap_or_default());
+
+    let mut store = GraphStore::new(target_dir.clone());
+    store.index_directory();
+
+    let stdin = io::stdin();
+    let mut stdout = io::stdout();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = match line {
+            Ok(l) => l,
+            Err(_) => break,
+        };
+
+        if line.trim().is_empty() {
+            continue;
+        }
+
+        if let Ok(req) = serde_json::from_str::<Value>(&line) {
+            let id = req.get("id").cloned();
+            let method = req.get("method").and_then(|m| m.as_str()).unwrap_or("");
+
+            match method {
+                "initialize" => {
+                    let resp = json!({
+                        "jsonrpc": "2.0",
+                        "id": id,
+                        "result": {
+                            "protocolVersion": "2024-11-05",
+                            "capabilities": { "tools": {} },
+                            "serverInfo": { "name": "byterag-code-graph-rust", "version": "1.0.0" }
+                        }
+                    });
+                    writeln!(stdout, "{}", serde_json::to_string(&resp)?)?;
+                    stdout.flush()?;
+                }
+                "tools/list" => {
+                    let resp = json!({
+                        "jsonrpc": "2.0",
+                        "id": id,
+                        "result": {
+                            "tools": [
+                                {
+                                    "name": "byterag_query_graph",
+                                    "description": "Query symbol dependency subgraph up to max_depth for seed nodes.",
+                                    "inputSchema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "node_id": { "type": "string" },
+                                            "node_ids": { "type": "array", "items": { "type": "string" } },
+                                            "max_depth": { "type": "number" }
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "byterag_search_symbols",
+                                    "description": "Search symbols in project by query string.",
+                                    "inputSchema": {
+                                        "type": "object",
+                                        "properties": { "query": { "type": "string" } },
+                                        "required": ["query"]
+                                    }
+                                },
+                                {
+                                    "name": "byterag_reindex",
+                                    "description": "Force re-indexing target project directory.",
+                                    "inputSchema": {
+                                        "type": "object",
+                                        "properties": { "target_dir": { "type": "string" } }
+                                    }
+                                }
+                            ]
+                        }
+                    });
+                    writeln!(stdout, "{}", serde_json::to_string(&resp)?)?;
+                    stdout.flush()?;
+                }
+                "tools/call" => {
+                    let params = req.get("params");
+                    let tool_name = params.and_then(|p| p.get("name")).and_then(|n| n.as_str()).unwrap_or("");
+                    let args = params.and_then(|p| p.get("arguments"));
+
+                    let content_text = match tool_name {
+                        "byterag_query_graph" => {
+                            let single = args.and_then(|a| a.get("node_id")).and_then(|s| s.as_str());
+                            let mut seeds = Vec::new();
+                            if let Some(s) = single {
+                                seeds.push(s.to_string());
+                            }
+                            if let Some(arr) = args.and_then(|a| a.get("node_ids")).and_then(|arr| arr.as_array()) {
+                                for item in arr {
+                                    if let Some(s) = item.as_str() {
+                                        seeds.push(s.to_string());
+                                    }
+                                }
+                            }
+                            let max_depth = args.and_then(|a| a.get("max_depth")).and_then(|n| n.as_u64()).unwrap_or(2) as usize;
+                            let sub_graph = store.query_subgraph(&seeds, max_depth);
+                            serde_json::to_string_pretty(&sub_graph)?
+                        }
+                        "byterag_search_symbols" => {
+                            let query = args.and_then(|a| a.get("query")).and_then(|s| s.as_str()).unwrap_or("");
+                            let matches = store.search_symbols(query);
+                            serde_json::to_string_pretty(&matches)?
+                        }
+                        "byterag_reindex" => {
+                            store.index_directory();
+                            "Successfully re-indexed project directory.".to_string()
+                        }
+                        _ => "Unknown tool".to_string(),
+                    };
+
+                    let resp = json!({
+                        "jsonrpc": "2.0",
+                        "id": id,
+                        "result": {
+                            "content": [{ "type": "text", "text": content_text }]
+                        }
+                    });
+                    writeln!(stdout, "{}", serde_json::to_string(&resp)?)?;
+                    stdout.flush()?;
+                }
+                _ => {}
+            }
+        }
+    }
+
+    Ok(())
+}
