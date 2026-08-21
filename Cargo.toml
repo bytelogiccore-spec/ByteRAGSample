@@ -9,3 +9,4 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 regex = "1.10"
 walkdir = "2.4"
+byterag-core = { path = "D:/ByteLogicCore/ByteRAG/core/byterag-core" }

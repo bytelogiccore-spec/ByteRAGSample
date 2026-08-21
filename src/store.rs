@@ -1,62 +1,34 @@
-use crate::parser::parse_file;
-use crate::types::{GraphData, GraphNode};
-use std::collections::{HashSet, VecDeque};
+use byterag_core::Database;
 use std::fs;
-use std::path::{Path, PathBuf};
-use walkdir::WalkDir;
+use std::path::PathBuf;
+use std::sync::Arc;
+
+use crate::parser::parse_file;
+use crate::types::GraphNode as SampleNode;
 
 pub struct GraphStore {
     target_dir: PathBuf,
-    data: GraphData,
+    db: Arc<Database>,
 }
 
 impl GraphStore {
     pub fn new(target_dir: PathBuf) -> Self {
-        let mut store = Self {
-            target_dir,
-            data: GraphData::default(),
-        };
-        store.load();
+        let db_dir = target_dir.join(".byterag");
+        if !db_dir.exists() {
+            let _ = fs::create_dir_all(&db_dir);
+        }
+        
+        let db = Database::open(&db_dir).unwrap_or_else(|_| {
+            Arc::new(Database::open_in_memory().expect("Failed to open ByteRAG Database"))
+        });
+
+        let mut store = Self { target_dir, db };
+        store.index_directory();
         store
     }
 
-    pub fn set_target_dir(&mut self, dir: PathBuf) {
-        self.target_dir = dir;
-        self.load();
-    }
-
-    fn store_path(&self) -> PathBuf {
-        let dir = self.target_dir.join(".byterag");
-        if !dir.exists() {
-            let _ = fs::create_dir_all(&dir);
-        }
-        dir.join("graph_store.json")
-    }
-
-    pub fn load(&mut self) {
-        let path = self.store_path();
-        if path.exists() {
-            if let Ok(content) = fs::read_to_string(&path) {
-                if let Ok(parsed) = serde_json::from_str::<GraphData>(&content) {
-                    self.data = parsed;
-                    return;
-                }
-            }
-        }
-        self.data = GraphData::default();
-    }
-
-    pub fn save(&self) {
-        let path = self.store_path();
-        if let Ok(content) = serde_json::to_string_pretty(&self.data) {
-            let _ = fs::write(path, content);
-        }
-    }
-
     pub fn index_directory(&mut self) {
-        self.data = GraphData::default();
-
-        for entry in WalkDir::new(&self.target_dir).into_iter().filter_map(|e| e.ok()) {
+        for entry in walkdir::WalkDir::new(&self.target_dir).into_iter().filter_map(|e| e.ok()) {
             let path = entry.path();
             if path.is_file() {
                 let path_str = path.to_string_lossy();
@@ -66,62 +38,50 @@ impl GraphStore {
                 if let Ok(content) = fs::read_to_string(path) {
                     let (nodes, edges) = parse_file(&path_str, &content);
                     for node in nodes {
-                        self.data.nodes.insert(node.id.clone(), node);
+                        let val = serde_json::to_vec(&node).unwrap_or_default();
+                        let _ = self.db.insert("nodes", node.id.as_bytes(), &val);
                     }
-                    self.data.edges.extend(edges);
-                }
-            }
-        }
-        self.save();
-    }
 
-    pub fn query_subgraph(&self, seed_ids: &[String], max_depth: usize) -> GraphData {
-        let mut visited = HashSet::new();
-        let mut matched_edges = Vec::new();
-        let mut queue = VecDeque::new();
-
-        for id in seed_ids {
-            queue.push_back(id.clone());
-        }
-
-        for _ in 0..max_depth {
-            let mut next_queue = VecDeque::new();
-            while let Some(curr) = queue.pop_front() {
-                if visited.insert(curr.clone()) {
-                    for edge in &self.data.edges {
-                        if edge.source == curr || edge.target == curr {
-                            matched_edges.push(edge.clone());
-                            let neighbor = if edge.source == curr { &edge.target } else { &edge.source };
-                            if !visited.contains(neighbor) {
-                                next_queue.push_back(neighbor.clone());
-                            }
-                        }
+                    for (idx, edge) in edges.iter().enumerate() {
+                        let key = format!("edge:{}:{}", edge.source, idx);
+                        let val = serde_json::to_vec(&edge).unwrap_or_default();
+                        let _ = self.db.insert("edges", key.as_bytes(), &val);
                     }
                 }
             }
-            queue = next_queue;
-        }
-
-        let mut nodes = std::collections::HashMap::new();
-        for id in visited {
-            if let Some(node) = self.data.nodes.get(&id) {
-                nodes.insert(id, node.clone());
-            }
-        }
-
-        GraphData {
-            nodes,
-            edges: matched_edges,
         }
     }
 
-    pub fn search_symbols(&self, query: &str) -> Vec<GraphNode> {
+    pub fn query_subgraph(&self, seed_ids: &[String], max_depth: usize) -> serde_json::Value {
+        let mut matched_nodes = Vec::new();
+        let matched_edges: Vec<serde_json::Value> = Vec::new();
+
+        for seed in seed_ids {
+            if let Ok(Some(val)) = self.db.get("nodes", seed.as_bytes()) {
+                if let Ok(node) = serde_json::from_slice::<SampleNode>(&val) {
+                    matched_nodes.push(node);
+                }
+            }
+        }
+
+        serde_json::json!({
+            "nodes": matched_nodes,
+            "edges": matched_edges,
+            "query_seeds": seed_ids,
+            "max_depth": max_depth
+        })
+    }
+
+    pub fn search_symbols(&self, query: &str) -> Vec<SampleNode> {
         let q = query.to_lowercase();
-        self.data
-            .nodes
-            .values()
-            .filter(|n| n.name.to_lowercase().contains(&q) || n.id.to_lowercase().contains(&q))
-            .cloned()
-            .collect()
+        let mut results = Vec::new();
+
+        if let Ok(Some(val)) = self.db.get("nodes", q.as_bytes()) {
+            if let Ok(node) = serde_json::from_slice::<SampleNode>(&val) {
+                results.push(node);
+            }
+        }
+
+        results
     }
 }
