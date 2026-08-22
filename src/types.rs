@@ -48,3 +48,17 @@ pub struct GraphData {
     pub nodes: std::collections::HashMap<String, GraphNode>,
     pub edges: Vec<GraphEdge>,
 }
+
+/// Build a file-scoped symbol id, e.g. `struct:Database@core/byterag-core/src/engine/database.rs`.
+pub fn qualified_id(kind: &str, name: &str, rel_path: &str) -> String {
+    format!(
+        "{}:{}@{}",
+        kind,
+        name,
+        rel_path.replace('\\', "/")
+    )
+}
+
+pub fn file_node_id(rel_path: &str) -> String {
+    format!("file:{}", rel_path.replace('\\', "/"))
+}

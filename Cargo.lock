@@ -440,6 +440,7 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 [[package]]
 name = "byterag-core"
 version = "0.1.0"
+source = "git+https://github.com/bytelogiccore-spec/ByteRAG.git#79a0a4fd813db3ced1b240fed270206ec0e41b67"
 dependencies = [
  "aes-gcm-siv",
  "ahash 0.8.12",

@@ -12,9 +12,22 @@ Rust 기반의 고성능 **Universal Code GraphRAG MCP Server** 프로젝트입�
 
 ## 제공 MCP Tools
 
-1. `byterag_query_graph`: 시드 심볼 및 탐색 깊이 기준 의존성 서브그래프 조회.
-2. `byterag_search_symbols`: 키워드 기반 심볼 검색 (현재는 노드 id 정확 일치, 소문자).
+1. `byterag_query_graph`: 시드 심볼 기준 **BFS 서브그래프** 조회 (`max_depth`, `edges` 포함).
+2. `byterag_search_symbols`: id / 이름 / 파일 경로 **부분 일치 검색** (`limit` 기본 50).
 3. `byterag_reindex`: 지식 그래프 재생성. `target_dir`을 넘기면 인덱싱 루트를 바꾼 뒤 동기 인덱싱합니다.
+
+## 심볼 id 형식
+
+파일 스코프 id로 충돌을 피합니다:
+
+```text
+struct:Database@core/byterag-core/src/engine/database.rs
+fn:open_in_memory@core/byterag-core/src/engine/constructors.rs
+file:core/byterag-core/src/lib.rs
+```
+
+- `byterag_search_symbols("Database")` → 이름/id/경로에 `Database`가 포함된 심볼들
+- `byterag_query_graph(node_id: "struct:Database")` → 동일 짧은 이름의 **모든** 매칭 + outgoing edges 탐색
 
 ## 기동 동작
 

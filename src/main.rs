@@ -69,7 +69,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             "tools": [
                                 {
                                     "name": "byterag_query_graph",
-                                    "description": "Query symbol dependency subgraph up to max_depth for seed nodes.",
+                                    "description": "Query symbol dependency subgraph up to max_depth. Seeds accept exact ids (e.g. struct:Database@path/to/file.rs) or short names (struct:Database).",
                                     "inputSchema": {
                                         "type": "object",
                                         "properties": {
@@ -81,10 +81,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 },
                                 {
                                     "name": "byterag_search_symbols",
-                                    "description": "Search symbols in project by query string (exact node id, lowercased).",
+                                    "description": "Search symbols by id, name, or file path (case-insensitive substring). Returns up to `limit` matches, best first.",
                                     "inputSchema": {
                                         "type": "object",
-                                        "properties": { "query": { "type": "string" } },
+                                        "properties": {
+                                            "query": { "type": "string" },
+                                            "limit": { "type": "number" }
+                                        },
                                         "required": ["query"]
                                     }
                                 },
@@ -140,8 +143,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 .and_then(|a| a.get("query"))
                                 .and_then(|s| s.as_str())
                                 .unwrap_or("");
+                            let limit = args
+                                .and_then(|a| a.get("limit"))
+                                .and_then(|n| n.as_u64())
+                                .unwrap_or(50)
+                                .clamp(1, 200) as usize;
                             let store = store.read().map_err(|e| e.to_string())?;
-                            let matches = store.search_symbols(query);
+                            let matches = store.search_symbols_with_limit(query, limit);
                             serde_json::to_string_pretty(&matches)?
                         }
                         "byterag_reindex" => {

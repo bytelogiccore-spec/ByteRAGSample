@@ -1,12 +1,11 @@
-use crate::types::{EdgeType, GraphEdge, GraphNode, NodeType};
+use crate::types::{qualified_id, file_node_id, EdgeType, GraphEdge, GraphNode, NodeType};
 use regex::Regex;
 
-pub fn parse_file(file_path: &str, content: &str) -> (Vec<GraphNode>, Vec<GraphEdge>) {
+pub fn parse_file(rel_path: &str, content: &str) -> (Vec<GraphNode>, Vec<GraphEdge>) {
     let mut nodes = Vec::new();
     let mut edges = Vec::new();
-    let norm_path = file_path.replace('\\', "/");
-
-    let file_node_id = format!("file:{}", norm_path);
+    let norm_path = rel_path.replace('\\', "/");
+    let file_node_id = file_node_id(&norm_path);
     let file_name = norm_path.split('/').last().unwrap_or(&norm_path).to_string();
 
     let ext = norm_path.split('.').last().unwrap_or("").to_lowercase();
@@ -50,8 +49,13 @@ pub fn parse_file(file_path: &str, content: &str) -> (Vec<GraphNode>, Vec<GraphE
             if let Some(cap) = class_re.captures(line) {
                 let name = cap[1].to_string();
                 let is_class = line.contains("class");
-                let n_type = if is_class { NodeType::Class } else { NodeType::Struct };
-                let node_id = format!("{}:{}", if is_class { "class" } else { "struct" }, name);
+                let kind = if is_class { "class" } else { "struct" };
+                let n_type = if is_class {
+                    NodeType::Class
+                } else {
+                    NodeType::Struct
+                };
+                let node_id = qualified_id(kind, &name, &norm_path);
 
                 nodes.push(GraphNode {
                     id: node_id.clone(),
@@ -73,7 +77,10 @@ pub fn parse_file(file_path: &str, content: &str) -> (Vec<GraphNode>, Vec<GraphE
     // 2. C# Parsing logic
     if lang == "csharp" {
         let using_re = Regex::new(r#"^using\s+([A-Za-z0-9_.]+);"#).unwrap();
-        let type_re = Regex::new(r#"(?:public|private|protected|internal|static)*\s*(class|interface|struct|enum)\s+([A-Za-z_][A-Za-z0-9_]*)"#).unwrap();
+        let type_re = Regex::new(
+            r#"(?:public|private|protected|internal|static)*\s*(class|interface|struct|enum)\s+([A-Za-z_][A-Za-z0-9_]*)"#,
+        )
+        .unwrap();
 
         for (idx, line) in lines.iter().enumerate() {
             let line_trim = line.trim();
@@ -92,7 +99,7 @@ pub fn parse_file(file_path: &str, content: &str) -> (Vec<GraphNode>, Vec<GraphE
                     "enum" => NodeType::Enum,
                     _ => NodeType::Class,
                 };
-                let node_id = format!("{}:{}", kind_str, name);
+                let node_id = qualified_id(kind_str, &name, &norm_path);
 
                 nodes.push(GraphNode {
                     id: node_id.clone(),
@@ -111,20 +118,25 @@ pub fn parse_file(file_path: &str, content: &str) -> (Vec<GraphNode>, Vec<GraphE
         }
     }
 
-    // 3. Rust, TypeScript, Python basic definitions
+    // 3. Rust, TypeScript, Python definitions
     if lang == "rust" || lang == "typescript" || lang == "python" {
-        let def_re = Regex::new(r#"(?:pub\s+)?(struct|class|fn|def|interface)\s+([A-Za-z0-9_]+)"#).unwrap();
+        let def_re = Regex::new(
+            r#"(?:pub\s+)?(struct|enum|trait|class|fn|def|interface)\s+([A-Za-z0-9_]+)"#,
+        )
+        .unwrap();
         for (idx, line) in lines.iter().enumerate() {
             if let Some(cap) = def_re.captures(line) {
                 let kind_str = &cap[1];
                 let name = cap[2].to_string();
                 let n_type = match kind_str {
                     "struct" => NodeType::Struct,
+                    "enum" => NodeType::Enum,
+                    "trait" => NodeType::Trait,
                     "interface" => NodeType::Interface,
                     "fn" | "def" => NodeType::Function,
                     _ => NodeType::Class,
                 };
-                let node_id = format!("{}:{}", kind_str, name);
+                let node_id = qualified_id(kind_str, &name, &norm_path);
 
                 nodes.push(GraphNode {
                     id: node_id.clone(),
@@ -139,6 +151,40 @@ pub fn parse_file(file_path: &str, content: &str) -> (Vec<GraphNode>, Vec<GraphE
                     target: node_id,
                     edge_type: EdgeType::Defines,
                 });
+            }
+        }
+
+        if lang == "rust" {
+            let mod_re = Regex::new(r#"(?:pub\s+)?mod\s+([a-z_][a-z0-9_]*)"#).unwrap();
+            for (idx, line) in lines.iter().enumerate() {
+                if let Some(cap) = mod_re.captures(line.trim()) {
+                    let name = cap[1].to_string();
+                    let node_id = qualified_id("mod", &name, &norm_path);
+                    nodes.push(GraphNode {
+                        id: node_id.clone(),
+                        name,
+                        node_type: NodeType::Namespace,
+                        file_path: norm_path.clone(),
+                        language: lang.to_string(),
+                        line: Some(idx + 1),
+                    });
+                    edges.push(GraphEdge {
+                        source: file_node_id.clone(),
+                        target: node_id,
+                        edge_type: EdgeType::Defines,
+                    });
+                }
+            }
+
+            let use_re = Regex::new(r#"^\s*use\s+([A-Za-z0-9_:{}*]+)"#).unwrap();
+            for line in &lines {
+                if let Some(cap) = use_re.captures(line) {
+                    edges.push(GraphEdge {
+                        source: file_node_id.clone(),
+                        target: format!("use:{}", &cap[1]),
+                        edge_type: EdgeType::Imports,
+                    });
+                }
             }
         }
     }
