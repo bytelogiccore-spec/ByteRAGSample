@@ -22,10 +22,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         let store_bg = Arc::clone(&store);
         thread::spawn(move || {
-            let Ok(guard) = store_bg.read() else {
-                return;
+            // Snapshot Arc handles under a short read lock, then index without holding it.
+            // Holding RwLock for the whole index blocked Cursor MCP tool discovery / calls.
+            let worker = {
+                let Ok(guard) = store_bg.read() else {
+                    return;
+                };
+                guard.clone_arcs()
             };
-            guard.index_directory();
+            worker.index_directory();
         });
     }
 
@@ -46,6 +51,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Ok(req) = serde_json::from_str::<Value>(&line) {
             let id = req.get("id").cloned();
             let method = req.get("method").and_then(|m| m.as_str()).unwrap_or("");
+
+            // Notifications have no id — never block waiting for a reply.
+            if id.is_none() && method.starts_with("notifications/") {
+                continue;
+            }
 
             match method {
                 "initialize" => {
@@ -445,7 +455,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     writeln!(stdout, "{}", serde_json::to_string(&resp)?)?;
                     stdout.flush()?;
                 }
-                _ => {}
+                _ => {
+                    // Always answer requests with an id — silence hangs Cursor MCP on "loading".
+                    if id.is_some() {
+                        let resp = json!({
+                            "jsonrpc": "2.0",
+                            "id": id,
+                            "error": {
+                                "code": -32601,
+                                "message": format!("Method not found: {method}")
+                            }
+                        });
+                        writeln!(stdout, "{}", serde_json::to_string(&resp)?)?;
+                        stdout.flush()?;
+                    }
+                }
             }
         }
     }

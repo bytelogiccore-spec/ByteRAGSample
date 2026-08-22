@@ -69,6 +69,17 @@ impl GraphStore {
         &self.target_dir
     }
 
+    /// Cheap clone of Arc handles so background indexing need not hold `RwLock`.
+    pub fn clone_arcs(&self) -> Self {
+        Self {
+            target_dir: self.target_dir.clone(),
+            db: Arc::clone(&self.db),
+            indexing: Arc::clone(&self.indexing),
+            last_indexed_at: Arc::clone(&self.last_indexed_at),
+            last_file_count: Arc::clone(&self.last_file_count),
+        }
+    }
+
     pub fn set_target_dir(&mut self, target_dir: PathBuf) {
         *self = Self::open(target_dir);
     }
