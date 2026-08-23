@@ -8,8 +8,66 @@ use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 use std::thread;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use store::GraphStore;
 use types::EdgeType;
+
+fn idle_export_secs() -> u64 {
+    env::var("BYTERAG_IDLE_EXPORT_SECS")
+        .ok()
+        .and_then(|s| s.parse::<u64>().ok())
+        .unwrap_or(0)
+}
+
+fn now_unix_secs() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
+}
+
+fn spawn_idle_export_worker(store: Arc<RwLock<GraphStore>>, idle_secs: u64) {
+    if idle_secs == 0 {
+        return;
+    }
+    eprintln!("byterag: idle export enabled (BYTERAG_IDLE_EXPORT_SECS={idle_secs})");
+    thread::spawn(move || {
+        let poll = Duration::from_secs(idle_secs.min(5).max(1));
+        loop {
+            thread::sleep(poll);
+            let snapshot = {
+                let Ok(guard) = store.read() else {
+                    continue;
+                };
+                if guard.is_indexing() || !guard.is_dirty() {
+                    continue;
+                }
+                let write_at = guard.last_write_at();
+                if write_at == 0 {
+                    continue;
+                }
+                let now = now_unix_secs();
+                if now.saturating_sub(write_at) < idle_secs {
+                    continue;
+                }
+                Some((guard.clone_arcs(), write_at, guard.default_brdb_path()))
+            };
+            let Some((worker, write_at, path)) = snapshot else {
+                continue;
+            };
+            if worker.is_indexing() {
+                continue;
+            }
+            match worker.export_brdb(&path, 1) {
+                Ok(()) => {
+                    worker.clear_dirty_if_unchanged(write_at);
+                    eprintln!("byterag: idle export -> {}", path.display());
+                }
+                Err(e) => eprintln!("byterag: idle export failed: {e}"),
+            }
+        }
+    });
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -33,6 +91,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             worker.index_directory();
         });
     }
+
+    spawn_idle_export_worker(Arc::clone(&store), idle_export_secs());
 
     let stdin = io::stdin();
     let mut stdout = io::stdout();

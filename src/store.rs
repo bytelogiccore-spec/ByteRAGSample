@@ -3,7 +3,7 @@ use byterag_core::Database;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -24,6 +24,10 @@ pub struct GraphStore {
     target_dir: PathBuf,
     db: Arc<Database>,
     indexing: Arc<AtomicBool>,
+    /// True after a write (index/import) until a successful `.brdb` export clears it.
+    dirty: Arc<AtomicBool>,
+    /// Unix secs of the last write that set `dirty`.
+    last_write_at: Arc<AtomicU64>,
     last_indexed_at: Arc<Mutex<Option<u64>>>,
     last_file_count: Arc<Mutex<usize>>,
 }
@@ -60,6 +64,8 @@ impl GraphStore {
             target_dir,
             db,
             indexing: Arc::new(AtomicBool::new(false)),
+            dirty: Arc::new(AtomicBool::new(false)),
+            last_write_at: Arc::new(AtomicU64::new(0)),
             last_indexed_at: Arc::new(Mutex::new(None)),
             last_file_count: Arc::new(Mutex::new(0)),
         }
@@ -69,12 +75,39 @@ impl GraphStore {
         &self.target_dir
     }
 
+    pub fn is_indexing(&self) -> bool {
+        self.indexing.load(Ordering::SeqCst)
+    }
+
+    pub fn is_dirty(&self) -> bool {
+        self.dirty.load(Ordering::SeqCst)
+    }
+
+    pub fn last_write_at(&self) -> u64 {
+        self.last_write_at.load(Ordering::SeqCst)
+    }
+
+    fn mark_dirty(&self) {
+        let now = now_unix_secs();
+        self.last_write_at.store(now, Ordering::SeqCst);
+        self.dirty.store(true, Ordering::SeqCst);
+    }
+
+    /// Clears dirty only if no newer write landed since `write_at`.
+    pub fn clear_dirty_if_unchanged(&self, write_at: u64) {
+        if self.last_write_at.load(Ordering::SeqCst) == write_at {
+            self.dirty.store(false, Ordering::SeqCst);
+        }
+    }
+
     /// Cheap clone of Arc handles so background indexing need not hold `RwLock`.
     pub fn clone_arcs(&self) -> Self {
         Self {
             target_dir: self.target_dir.clone(),
             db: Arc::clone(&self.db),
             indexing: Arc::clone(&self.indexing),
+            dirty: Arc::clone(&self.dirty),
+            last_write_at: Arc::clone(&self.last_write_at),
             last_indexed_at: Arc::clone(&self.last_indexed_at),
             last_file_count: Arc::clone(&self.last_file_count),
         }
@@ -176,6 +209,7 @@ impl GraphStore {
         if let Ok(mut g) = self.last_file_count.lock() {
             *g = file_count;
         }
+        self.mark_dirty();
         self.indexing.store(false, Ordering::SeqCst);
 
         eprintln!(
@@ -200,9 +234,16 @@ impl GraphStore {
             .lock()
             .ok()
             .and_then(|g| *g);
+        let last_write = self.last_write_at.load(Ordering::SeqCst);
         serde_json::json!({
             "target_dir": self.target_dir.display().to_string(),
             "indexing": self.indexing.load(Ordering::SeqCst),
+            "dirty": self.dirty.load(Ordering::SeqCst),
+            "last_write_at": if last_write == 0 {
+                serde_json::Value::Null
+            } else {
+                serde_json::json!(last_write)
+            },
             "files": files,
             "nodes": nodes,
             "edges": edges,
@@ -575,14 +616,18 @@ impl GraphStore {
                 fs::create_dir_all(parent).map_err(|e| e.to_string())?;
             }
         }
+        let write_at = self.last_write_at.load(Ordering::SeqCst);
         self.db
             .export_to_file_version(path, format_version)
-            .map_err(|e| e.to_string())
+            .map_err(|e| e.to_string())?;
+        self.clear_dirty_if_unchanged(write_at);
+        Ok(())
     }
 
     pub fn import_brdb(&mut self, path: &Path) -> Result<(), String> {
         let db = Database::open_from_file(path).map_err(|e| e.to_string())?;
         self.db = Arc::new(db);
+        self.mark_dirty();
         Ok(())
     }
 

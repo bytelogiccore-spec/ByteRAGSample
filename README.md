@@ -44,6 +44,7 @@ file:core/byterag-core/src/lib.rs
 - First index runs on a **background thread** (`byterag: indexing start/done` on stderr).
 - Indexing ends with `flush()` (WAL trim). Prefer `byterag_reindex` for a durable snapshot.
 - Incremental reindex skips unchanged files (mtime in `file_meta`); excludes `target`, `.git`, `.byterag`, `node_modules`, `dist`, `build`, `__pycache__`.
+- Optional idle `.brdb` pack: set `BYTERAG_IDLE_EXPORT_SECS` (default `0` = off). After a write (`reindex` / startup index / `import_brdb`), if no newer write for that many seconds, exports to `<target>/.byterag/graph.brdb`.
 
 ## `BYTERAG_TARGET_DIR`
 
@@ -52,6 +53,10 @@ file:core/byterag-core/src/lib.rs
 | 1 | env `BYTERAG_TARGET_DIR` | MCP / cargo |
 | 2 | process cwd | if unset |
 | runtime | `byterag_reindex(target_dir)` | switch root without restart |
+
+| Env | Default | Notes |
+| --- | --- | --- |
+| `BYTERAG_IDLE_EXPORT_SECS` | `0` (off) | Seconds after last write before auto-export `.brdb` |
 
 Prefer a crate/subtree over a huge monorepo root.
 
