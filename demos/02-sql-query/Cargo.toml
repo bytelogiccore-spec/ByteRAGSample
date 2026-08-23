@@ -1,0 +1,12 @@
+[package]
+name = "demo-sql-query"
+version.workspace = true
+edition.workspace = true
+description = "ByteRAG SQL and Query Builder demo"
+
+[[bin]]
+name = "demo-sql-query"
+path = "src/main.rs"
+
+[dependencies]
+byterag-core = { workspace = true }

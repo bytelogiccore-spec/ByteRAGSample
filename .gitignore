@@ -1,2 +1,5 @@
 /target
+/target-verify
 .byterag
+**/.byterag-demo/
+**/snapshot.brdb

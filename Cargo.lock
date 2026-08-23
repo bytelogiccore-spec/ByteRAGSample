@@ -438,9 +438,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
+name = "byterag-codegraph"
+version = "0.1.0"
+dependencies = [
+ "byterag-core",
+ "regex",
+ "serde",
+ "serde_json",
+ "tokio",
+ "walkdir",
+]
+
+[[package]]
 name = "byterag-core"
 version = "0.3.0"
-source = "git+https://github.com/bytelogiccore-spec/ByteRAG.git?tag=v0.3.0#171e37419cace7aff8426965e5106f0b02c8e1e8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ff280dff067183cbb543284ad77017a13bec4d74a3df98f367894cb8ac1862eb"
 dependencies = [
  "aes-gcm-siv",
  "ahash 0.8.12",
@@ -476,18 +489,6 @@ dependencies = [
  "tracing",
  "wide",
  "zstd",
-]
-
-[[package]]
-name = "byterag_sample"
-version = "0.1.0"
-dependencies = [
- "byterag-core",
- "regex",
- "serde",
- "serde_json",
- "tokio",
- "walkdir",
 ]
 
 [[package]]
@@ -750,6 +751,34 @@ dependencies = [
  "lock_api",
  "once_cell",
  "parking_lot_core 0.9.12",
+]
+
+[[package]]
+name = "demo-brdb-portable"
+version = "0.1.0"
+dependencies = [
+ "byterag-core",
+]
+
+[[package]]
+name = "demo-graph-csr"
+version = "0.1.0"
+dependencies = [
+ "byterag-core",
+]
+
+[[package]]
+name = "demo-kv-crud"
+version = "0.1.0"
+dependencies = [
+ "byterag-core",
+]
+
+[[package]]
+name = "demo-sql-query"
+version = "0.1.0"
+dependencies = [
+ "byterag-core",
 ]
 
 [[package]]

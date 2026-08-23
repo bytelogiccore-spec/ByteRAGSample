@@ -1,12 +1,21 @@
-[package]
-name = "byterag_sample"
+[workspace]
+resolver = "2"
+members = [
+    "crates/byterag-codegraph",
+    "demos/01-kv-crud",
+    "demos/02-sql-query",
+    "demos/03-graph-csr",
+    "demos/04-brdb-portable",
+]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
+[workspace.dependencies]
+byterag-core = "0.3.0"
 tokio = { version = "1.35", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 regex = "1.10"
 walkdir = "2.4"
-byterag-core = { git = "https://github.com/bytelogiccore-spec/ByteRAG.git", tag = "v0.3.0" }

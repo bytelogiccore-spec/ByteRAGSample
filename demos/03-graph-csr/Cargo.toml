@@ -1,0 +1,12 @@
+[package]
+name = "demo-graph-csr"
+version.workspace = true
+edition.workspace = true
+description = "ByteRAG CsrGraph multi-hop demo"
+
+[[bin]]
+name = "demo-graph-csr"
+path = "src/main.rs"
+
+[dependencies]
+byterag-core = { workspace = true }

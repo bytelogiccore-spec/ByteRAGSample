@@ -1,0 +1,12 @@
+[package]
+name = "demo-kv-crud"
+version.workspace = true
+edition.workspace = true
+description = "ByteRAG embedded KV CRUD demo"
+
+[[bin]]
+name = "demo-kv-crud"
+path = "src/main.rs"
+
+[dependencies]
+byterag-core = { workspace = true }

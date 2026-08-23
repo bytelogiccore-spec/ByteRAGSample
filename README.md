@@ -1,131 +1,34 @@
-# ByteRAGSample — `byterag-codegraph` MCP
+# ByteRAGSample — ByteRAG 사용법 데모 워크스페이스
 
-Rust MCP server that builds a **code dependency graph** on top of the [ByteRAG](https://github.com/bytelogiccore-spec/ByteRAG) database engine (`byterag-core` **v0.3.0**).
+[ByteRAG](https://crates.io/crates/byterag-core) (`byterag-core` **0.3.0**, crates.io)의 주요 사용 패턴을 **샘플별로 분리**한 저장소입니다.  
+각 샘플은 한 가지 주제만 다루며, 실행 가능한 Rust 바이너리와 한국어 README를 제공합니다.
 
-- **ByteRAG** = embedded DB / graph storage engine  
-- **`byterag-codegraph`** = this MCP (code-graph analysis tools for agents)
+## 어떤 샘플을 볼까?
 
-## Supported languages
+| 샘플 | 패키지 | 한 줄 요약 | 실행 |
+| --- | --- | --- | --- |
+| [demos/01-kv-crud](demos/01-kv-crud) | `demo-kv-crud` | 임베디드 KV: open / insert / get / delete / flush | `cargo run -p demo-kv-crud` |
+| [demos/02-sql-query](demos/02-sql-query) | `demo-sql-query` | `execute_sql` + Query Builder | `cargo run -p demo-sql-query` |
+| [demos/03-graph-csr](demos/03-graph-csr) | `demo-graph-csr` | `CsrGraph` 멀티홉 (파서/MCP 없음) | `cargo run -p demo-graph-csr` |
+| [demos/04-brdb-portable](demos/04-brdb-portable) | `demo-brdb-portable` | `.brdb` export / import 왕복 | `cargo run -p demo-brdb-portable` |
+| [crates/byterag-codegraph](crates/byterag-codegraph) | `byterag-codegraph` | 코드 의존성 그래프 **MCP** 서버 | `cargo build -p byterag-codegraph` |
 
-- **C++**: `*.cpp`, `*.h`, `*.hpp`, `*.cxx`, `*.cc`
-- **C#**: `*.cs`
-- **Rust**: `*.rs`
-- **TypeScript / JS**: `*.ts`, `*.tsx`, `*.js`, `*.jsx`
-- **Python**: `*.py`
+추천 학습 순서: **KV → SQL → Graph → brdb → codegraph MCP**.
 
-## MCP tools
-
-**Core**
-1. `byterag_query_graph` — CsrGraph BFS subgraph (`max_depth`, optional `edge_types`, response `summary`)
-2. `byterag_search_symbols` — id / name / path search (`limit` default 50)
-3. `byterag_reindex` — rebuild (+ `flush`); optional `target_dir`
-4. `byterag_export_brdb` / `byterag_import_brdb` — portable `.brdb` packs
-
-**Analysis**
-5. `byterag_index_status` — indexing flag, counts, last indexed time
-6. `byterag_get_symbol` / `byterag_get_neighbors` — node + 1-hop (edge_type filter)
-7. `byterag_find_path` — shortest path between two seeds
-8. `byterag_blast_radius` — N-hop reach set + fan-in/out hubs
-9. `byterag_list_by_type` — filter by node type / path / language
-10. `byterag_read_snippet` — source ±N lines around a symbol
-11. `byterag_detect_cycles` — directed cycle samples (structural smell)
-
-## Symbol id format
-
-```text
-struct:Database@core/byterag-core/src/engine/database.rs
-fn:open_in_memory@core/byterag-core/src/engine/constructors.rs
-file:core/byterag-core/src/lib.rs
-```
-
-## Startup
-
-- Opens `.byterag/` then answers MCP `initialize` / `tools/list` immediately.
-- First index runs on a **background thread** (`byterag: indexing start/done` on stderr).
-- Indexing ends with `flush()` (WAL trim). Prefer `byterag_reindex` for a durable snapshot.
-- Incremental reindex skips unchanged files (mtime in `file_meta`); excludes `target`, `.git`, `.byterag`, `node_modules`, `dist`, `build`, `__pycache__`.
-- Optional idle `.brdb` pack: set `BYTERAG_IDLE_EXPORT_SECS` (default `0` = off). After a write (`reindex` / startup index / `import_brdb`), if no newer write for that many seconds, exports to `<target>/.byterag/graph.brdb`.
-
-## `BYTERAG_TARGET_DIR`
-
-| Priority | Source | Notes |
-| --- | --- | --- |
-| 1 | env `BYTERAG_TARGET_DIR` | MCP / cargo |
-| 2 | process cwd | if unset |
-| runtime | `byterag_reindex(target_dir)` | switch root without restart |
-
-| Env | Default | Notes |
-| --- | --- | --- |
-| `BYTERAG_IDLE_EXPORT_SECS` | `0` (off) | Seconds after last write before auto-export `.brdb` |
-
-Prefer a crate/subtree over a huge monorepo root.
-
-## Cursor MCP (global)
-
-`~/.cursor/mcp.json` (Windows: `%USERPROFILE%\.cursor\mcp.json`):
-
-```json
-{
-  "mcpServers": {
-    "byterag-codegraph": {
-      "type": "stdio",
-      "command": "d:/ByteLogicCore/ByteRAGSample/target/debug/byterag_sample.exe",
-      "args": [],
-      "env": {
-        "BYTERAG_TARGET_DIR": "${workspaceFolder}"
-      }
-    }
-  }
-}
-```
-
-Other IDE example:
-
-```json
-"byterag-codegraph": {
-  "command": "d:/ByteLogicCore/ByteRAGSample/target/debug/byterag_sample.exe",
-  "args": [],
-  "env": {
-    "BYTERAG_TARGET_DIR": "d:/ByteLogicCore/ByteRAG/core/byterag-core"
-  }
-}
-```
-
-## PowerShell direct attach
-
-Drain stdout/stderr **concurrently** or pipes deadlock:
-
-```powershell
-$env:BYTERAG_TARGET_DIR = "d:/ByteLogicCore/ByteRAG/core/byterag-core"
-$psi = New-Object System.Diagnostics.ProcessStartInfo
-$psi.FileName = "d:/ByteLogicCore/ByteRAGSample/target/debug/byterag_sample.exe"
-$psi.UseShellExecute = $false
-$psi.RedirectStandardInput = $true
-$psi.RedirectStandardOutput = $true
-$psi.RedirectStandardError = $true
-$p = [Diagnostics.Process]::Start($psi)
-
-$stdoutTask = $p.StandardOutput.ReadToEndAsync()
-$stderrTask = $p.StandardError.ReadToEndAsync()
-
-$p.StandardInput.WriteLine('{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}')
-$p.StandardInput.Close()
-
-[void][Threading.Tasks.Task]::WaitAll(@($stdoutTask, $stderrTask))
-$p.WaitForExit(60000)
-$stdoutTask.Result
-```
-
-## Build
+## 빌드
 
 ```bash
-cargo build
-# or
-cargo build --release
-
-# Windows (PowerShell)
-$env:BYTERAG_TARGET_DIR = "d:/ByteLogicCore/ByteRAG/core/byterag-core"
-cargo run
+cargo build --workspace
+# 릴리스
+cargo build --workspace --release
 ```
 
-Index data lives under `<target>/.byterag/`. Use `byterag_export_brdb` for portable snapshots.
+MCP 바이너리 이름(Cursor `mcp.json` 호환): `target/debug/byterag_sample.exe` (Windows) / `target/debug/byterag_sample`.
+
+## 다음에 추가 가능
+
+Vector 검색, Encryption/WAL, 언어 바인딩(Python/Node/C#)은 의도적으로 제외했습니다. 필요하면 동일 패턴으로 `demos/`에 추가하면 됩니다.
+
+## 엔진
+
+공통 의존성: [`byterag-core = "0.3.0"`](https://crates.io/crates/byterag-core) ([workspace.dependencies](Cargo.toml)).

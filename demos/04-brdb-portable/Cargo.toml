@@ -1,0 +1,12 @@
+[package]
+name = "demo-brdb-portable"
+version.workspace = true
+edition.workspace = true
+description = "ByteRAG .brdb export/import demo"
+
+[[bin]]
+name = "demo-brdb-portable"
+path = "src/main.rs"
+
+[dependencies]
+byterag-core = { workspace = true }
