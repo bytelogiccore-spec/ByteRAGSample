@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "crates/byterag-codegraph",
+    "crates/codeorbit",
     "demos/01-kv-crud",
     "demos/02-sql-query",
     "demos/03-graph-csr",

@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CodeOrbit — Code Graph & MCP Manager</title>
+  <style>
+    :root {
+      --bg-base: #09090b;
+      --bg-container: #131315;
+      --bg-card: #18181b;
+      --bg-elevated: #201f22;
+      --primary-cyan: #06b6d4;
+      --primary-cyan-bright: #4cd7f6;
+      --secondary-violet: #8b5cf6;
+      --secondary-violet-bright: #d0bcff;
+      --tertiary-emerald: #10b981;
+      --border-thin: rgba(255, 255, 255, 0.08);
+      --border-focus: #06b6d4;
+      --text-main: #e5e1e4;
+      --text-muted: #869397;
+      --text-sub: #bcc9cd;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Geist", "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    aside {
+      width: 260px;
+      background-color: var(--bg-container);
+      border-right: 1px solid var(--border-thin);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .sidebar-header {
+      padding: 20px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border-thin);
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 14px;
+      color: #000;
+      box-shadow: 0 0 14px rgba(6, 182, 212, 0.4);
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+    }
+
+    .brand-tag {
+      font-size: 10px;
+      font-family: "JetBrains Mono", monospace;
+      color: var(--primary-cyan-bright);
+      background: rgba(6, 182, 212, 0.12);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+
+    .nav-list {
+      list-style: none;
+      padding: 16px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+
+    .nav-item:hover {
+      color: var(--text-main);
+      background-color: var(--bg-card);
+    }
+
+    .nav-item.active {
+      color: #fff;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-thin);
+    }
+
+    .nav-item.active::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 6px;
+      bottom: 6px;
+      width: 3px;
+      background-color: var(--primary-cyan);
+      border-radius: 0 2px 2px 0;
+      box-shadow: 0 0 8px var(--primary-cyan);
+    }
+
+    .sidebar-footer {
+      padding: 16px;
+      border-top: 1px solid var(--border-thin);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-thin);
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: var(--tertiary-emerald);
+      box-shadow: 0 0 6px var(--tertiary-emerald);
+    }
+
+    .status-dot.busy {
+      background-color: #f59e0b;
+      box-shadow: 0 0 6px #f59e0b;
+    }
+
+    .main-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--bg-base);
+      overflow: hidden;
+    }
+
+    header {
+      height: 56px;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--border-thin);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-container);
+    }
+
+    .target-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      max-width: 580px;
+    }
+
+    .target-input {
+      flex: 1;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-thin);
+      border-radius: 4px;
+      color: var(--text-main);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px;
+      padding: 7px 12px;
+      outline: none;
+      transition: border 0.15s;
+    }
+
+    .target-input:focus {
+      border-color: var(--border-focus);
+    }
+
+    .btn {
+      background-color: var(--primary-cyan);
+      color: #000;
+      font-weight: 600;
+      font-size: 12px;
+      padding: 7px 14px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+
+    .btn:hover {
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.4);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border-thin);
+    }
+
+    .btn-ghost:hover {
+      background: var(--bg-card);
+      color: var(--text-main);
+    }
+
+    .content-canvas {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    .metric-card {
+      background-color: var(--bg-container);
+      border: 1px solid var(--border-thin);
+      border-radius: 6px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: border 0.15s;
+    }
+
+    .metric-card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .metric-label {
+      font-size: 11px;
+      font-family: "JetBrains Mono", monospace;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    .metric-value {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+    }
+
+    .metric-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    .explorer-panel {
+      flex: 1;
+      background-color: var(--bg-container);
+      border: 1px solid var(--border-thin);
+      border-radius: 6px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .search-input {
+      flex: 1;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-thin);
+      border-radius: 4px;
+      color: var(--text-main);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      padding: 10px 14px;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: var(--primary-cyan);
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+    }
+
+    .results-scroll {
+      flex: 1;
+      background-color: var(--bg-base);
+      border: 1px solid var(--border-thin);
+      border-radius: 4px;
+      padding: 12px;
+      overflow-y: auto;
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .symbol-row {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-thin);
+      border-radius: 4px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.15s;
+    }
+
+    .symbol-row:hover {
+      border-color: rgba(6, 182, 212, 0.4);
+      background-color: var(--bg-elevated);
+    }
+
+    .symbol-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary-cyan-bright);
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    .symbol-path {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .type-badge {
+      font-size: 10px;
+      font-family: "JetBrains Mono", monospace;
+      padding: 2px 8px;
+      border-radius: 3px;
+      background: rgba(139, 92, 246, 0.15);
+      color: var(--secondary-violet-bright);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      text-transform: uppercase;
+    }
+
+    .empty-prompt {
+      color: var(--text-muted);
+      font-size: 12px;
+      text-align: center;
+      margin: auto;
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    .tab-content {
+      display: none;
+      flex-direction: column;
+      gap: 20px;
+      height: 100%;
+    }
+
+    .tab-content.active {
+      display: flex;
+    }
+  </style>
+</head>
+<body>
+
+  <aside>
+    <div>
+      <div class="sidebar-header">
+        <div class="brand-icon">CO</div>
+        <div>
+          <div class="brand-title">CodeOrbit</div>
+          <div class="brand-tag">AST GRAPH ENGINE</div>
+        </div>
+      </div>
+
+      <ul class="nav-list">
+        <li class="nav-item active" data-tab="tab-overview">⚡ 대시보드 개요</li>
+        <li class="nav-item" data-tab="tab-mcp">🔌 MCP 도구 및 상태</li>
+        <li class="nav-item" data-tab="tab-settings">⚙️ 환경 설정 & 시작프로그램</li>
+      </ul>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="status-pill">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span id="indicator-dot" class="status-dot"></span>
+          <span id="indicator-text" style="color:var(--text-main)">MCP READY</span>
+        </div>
+        <span style="color:var(--text-muted)">v0.1.0</span>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-wrapper">
+    <header>
+      <div class="target-bar">
+        <input type="text" id="target-dir-input" class="target-input" placeholder="D:\ProjectRoot..." />
+        <button id="btn-change-target" class="btn btn-ghost">타겟 적용</button>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button id="btn-reindex-top" class="btn">⚡ 즉시 재인덱싱</button>
+        <button id="btn-minimize-tray" class="btn btn-ghost">트레이로 숨김</button>
+      </div>
+    </header>
+
+    <div class="content-canvas">
+      <div id="tab-overview" class="tab-content active">
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <span class="metric-label">INDEXED FILES</span>
+            <span class="metric-value" id="card-files">0</span>
+            <span class="metric-sub">Rust · C++ · C# · TS · Py</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">KNOWLEDGE NODES</span>
+            <span class="metric-value" id="card-nodes">0</span>
+            <span class="metric-sub">Classes, Structs, Funcs</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">RELATION EDGES</span>
+            <span class="metric-value" id="card-edges">0</span>
+            <span class="metric-sub">Imports, Inherits, Calls</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">STORAGE ENGINE</span>
+            <span class="metric-value" style="font-size:20px; color:var(--primary-cyan-bright)">ByteRAG 5T</span>
+            <span class="metric-sub">.byterag/ (Persistent)</span>
+          </div>
+        </div>
+
+        <div class="explorer-panel">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="metric-label">GRAPH EXPLORER & SYMBOL SEARCH</span>
+            <span id="last-index-time" style="font-size:11px; font-family:'JetBrains Mono', monospace; color:var(--text-muted)">최근 인덱싱: 없음</span>
+          </div>
+
+          <div class="search-row">
+            <input type="text" id="symbol-search-input" class="search-input" placeholder="검색할 심볼 이름, 구조체, 클래스, 함수 (예: UserService, AgentCard, parse_file)" />
+            <button id="btn-do-search" class="btn">탐색</button>
+          </div>
+
+          <div id="symbol-results-box" class="results-scroll">
+            <div class="empty-prompt">검색어를 입력하고 탐색 버튼을 누르면 의존성 심볼 목록이 표시됩니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-mcp" class="tab-content">
+        <div class="metric-card" style="padding:20px;">
+          <span class="metric-label">호스팅 중인 MCP Tools (JSON-RPC)</span>
+          <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin-top:14px;">
+            <div class="symbol-row">
+              <div>
+                <div class="symbol-title">byterag_query_graph</div>
+                <div class="symbol-path">BFS 다중 시드 양방향 그래프 탐색</div>
+              </div>
+              <span class="type-badge">CORE</span>
+            </div>
+            <div class="symbol-row">
+              <div>
+                <div class="symbol-title">byterag_search_symbols</div>
+                <div class="symbol-path">실시간 심볼 및 파일 위치 검색</div>
+              </div>
+              <span class="type-badge">SEARCH</span>
+            </div>
+            <div class="symbol-row">
+              <div>
+                <div class="symbol-title">byterag_blast_radius</div>
+                <div class="symbol-path">코드 변경 시 영향도 전파 분석</div>
+              </div>
+              <span class="type-badge">ANALYTICS</span>
+            </div>
+            <div class="symbol-row">
+              <div>
+                <div class="symbol-title">byterag_find_path</div>
+                <div class="symbol-path">두 심볼 간의 최단 의존 경로 탐색</div>
+              </div>
+              <span class="type-badge">GRAPH</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-settings" class="tab-content">
+        <div class="metric-card" style="padding:20px; gap:16px;">
+          <span class="metric-label">SYSTEM & AUTOSTART</span>
+          <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:13px;">
+            <input type="checkbox" id="chk-autostart-opt" style="accent-color:var(--primary-cyan); width:16px; height:16px;" />
+            <span>윈도우 부팅 시 CodeOrbit 자동 실행 (Autostart)</span>
+          </label>
+          <div style="font-size:12px; color:var(--text-muted); line-height:1.5;">
+            * 부팅 시 백그라운드 트레이로 자동 실행되어 에디터(Antigravity, Cursor 등)가 시작될 때 지식 그래프가 즉시 준비됩니다.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { invoke } = window.__TAURI__.core;
+
+    const elCardFiles = document.getElementById('card-files');
+    const elCardNodes = document.getElementById('card-nodes');
+    const elCardEdges = document.getElementById('card-edges');
+    const elDot = document.getElementById('indicator-dot');
+    const elText = document.getElementById('indicator-text');
+    const elTargetInput = document.getElementById('target-dir-input');
+    const elLastTime = document.getElementById('last-index-time');
+    const elAutostart = document.getElementById('chk-autostart-opt');
+    const elSearchInput = document.getElementById('symbol-search-input');
+    const elResultsBox = document.getElementById('symbol-results-box');
+
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        item.classList.add('active');
+        document.getElementById(item.dataset.tab).classList.add('active');
+      });
+    });
+
+    async function syncState() {
+      try {
+        const s = await invoke('get_index_status');
+        elCardFiles.textContent = s.files.toLocaleString();
+        elCardNodes.textContent = s.nodes.toLocaleString();
+        elCardEdges.textContent = s.edges.toLocaleString();
+
+        if (s.indexing) {
+          elDot.className = 'status-dot busy';
+          elText.textContent = 'INDEXING...';
+        } else {
+          elDot.className = 'status-dot';
+          elText.textContent = 'MCP READY';
+        }
+
+        if (document.activeElement !== elTargetInput) {
+          elTargetInput.value = s.target_dir || '';
+        }
+
+        if (s.last_indexed_at) {
+          const dt = new Date(s.last_indexed_at * 1000);
+          elLastTime.textContent = `최근 인덱싱: ${dt.toLocaleTimeString()}`;
+        }
+      } catch (e) {
+        console.error('State sync failed:', e);
+      }
+    }
+
+    async function syncAutostart() {
+      try {
+        elAutostart.checked = await invoke('is_autostart_enabled');
+      } catch (e) {}
+    }
+
+    elAutostart.addEventListener('change', async () => {
+      try {
+        await invoke('toggle_autostart', { enabled: elAutostart.checked });
+      } catch (e) {
+        alert('시작프로그램 설정 변경 실패: ' + e);
+        elAutostart.checked = !elAutostart.checked;
+      }
+    });
+
+    document.getElementById('btn-reindex-top').addEventListener('click', async () => {
+      try {
+        await invoke('trigger_reindex', { targetDir: null });
+        syncState();
+      } catch (e) {
+        alert('재인덱싱 실패: ' + e);
+      }
+    });
+
+    document.getElementById('btn-change-target').addEventListener('click', async () => {
+      const dir = elTargetInput.value.trim();
+      if (!dir) return;
+      try {
+        await invoke('trigger_reindex', { targetDir: dir });
+        syncState();
+      } catch (e) {
+        alert('타겟 경로 변경 실패: ' + e);
+      }
+    });
+
+    document.getElementById('btn-do-search').addEventListener('click', async () => {
+      const query = elSearchInput.value.trim();
+      if (!query) return;
+      try {
+        const list = await invoke('search_symbols', { query, limit: 30 });
+        if (!list || list.length === 0) {
+          elResultsBox.innerHTML = '<div class="empty-prompt">검색 결과가 없습니다.</div>';
+          return;
+        }
+        elResultsBox.innerHTML = list.map(item => `
+          <div class="symbol-row">
+            <div>
+              <div class="symbol-title">${escapeHtml(item.name || item.id)}</div>
+              <div class="symbol-path">${escapeHtml(item.file_path || '')} ${item.line ? '(L' + item.line + ')' : ''}</div>
+            </div>
+            <span class="type-badge">${escapeHtml(item.node_type || item.language || 'SYM')}</span>
+          </div>
+        `).join('');
+      } catch (e) {
+        alert('탐색 실패: ' + e);
+      }
+    });
+
+    elSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('btn-do-search').click();
+    });
+
+    document.getElementById('btn-minimize-tray').addEventListener('click', async () => {
+      await invoke('hide_to_tray');
+    });
+
+    function escapeHtml(str) {
+      return (str || '').replace(/[&<>'"]/g, 
+        t => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[t] || t)
+      );
+    }
+
+    syncState();
+    syncAutostart();
+    setInterval(syncState, 2000);
+  </script>
+</body>
+</html>
