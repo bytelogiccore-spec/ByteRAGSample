@@ -529,7 +529,18 @@
   </div>
 
   <script>
-    const { invoke } = window.__TAURI__.core;
+    function safeInvoke(cmd, args = {}) {
+      if (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) {
+        return window.__TAURI__.core.invoke(cmd, args);
+      }
+      if (window.__TAURI__ && window.__TAURI__.invoke) {
+        return window.__TAURI__.invoke(cmd, args);
+      }
+      if (window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.invoke) {
+        return window.__TAURI_INTERNALS__.invoke(cmd, args);
+      }
+      return Promise.reject(new Error('Tauri IPC is not available'));
+    }
 
     const elCardFiles = document.getElementById('card-files');
     const elCardNodes = document.getElementById('card-nodes');
@@ -547,16 +558,17 @@
         document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         item.classList.add('active');
-        document.getElementById(item.dataset.tab).classList.add('active');
+        const target = document.getElementById(item.dataset.tab);
+        if (target) target.classList.add('active');
       });
     });
 
     async function syncState() {
       try {
-        const s = await invoke('get_index_status');
-        elCardFiles.textContent = s.files.toLocaleString();
-        elCardNodes.textContent = s.nodes.toLocaleString();
-        elCardEdges.textContent = s.edges.toLocaleString();
+        const s = await safeInvoke('get_index_status');
+        elCardFiles.textContent = (s.files || 0).toLocaleString();
+        elCardNodes.textContent = (s.nodes || 0).toLocaleString();
+        elCardEdges.textContent = (s.edges || 0).toLocaleString();
 
         if (s.indexing) {
           elDot.className = 'status-dot busy';
@@ -566,8 +578,8 @@
           elText.textContent = 'MCP READY';
         }
 
-        if (document.activeElement !== elTargetInput) {
-          elTargetInput.value = s.target_dir || '';
+        if (document.activeElement !== elTargetInput && s.target_dir) {
+          elTargetInput.value = s.target_dir;
         }
 
         if (s.last_indexed_at) {
@@ -575,31 +587,32 @@
           elLastTime.textContent = `최근 인덱싱: ${dt.toLocaleTimeString()}`;
         }
       } catch (e) {
-        console.error('State sync failed:', e);
+        // Fallback for browser testing
+        console.warn('State sync notice:', e);
       }
     }
 
     async function syncAutostart() {
       try {
-        elAutostart.checked = await invoke('is_autostart_enabled');
+        elAutostart.checked = await safeInvoke('is_autostart_enabled');
       } catch (e) {}
     }
 
     elAutostart.addEventListener('change', async () => {
       try {
-        await invoke('toggle_autostart', { enabled: elAutostart.checked });
+        await safeInvoke('toggle_autostart', { enabled: elAutostart.checked });
       } catch (e) {
-        alert('시작프로그램 설정 변경 실패: ' + e);
+        alert('시작프로그램 설정 변경: ' + e);
         elAutostart.checked = !elAutostart.checked;
       }
     });
 
     document.getElementById('btn-reindex-top').addEventListener('click', async () => {
       try {
-        await invoke('trigger_reindex', { targetDir: null });
+        await safeInvoke('trigger_reindex', { targetDir: null });
         syncState();
       } catch (e) {
-        alert('재인덱싱 실패: ' + e);
+        alert('재인덱싱 알림: ' + e);
       }
     });
 
@@ -607,10 +620,10 @@
       const dir = elTargetInput.value.trim();
       if (!dir) return;
       try {
-        await invoke('trigger_reindex', { targetDir: dir });
+        await safeInvoke('trigger_reindex', { targetDir: dir });
         syncState();
       } catch (e) {
-        alert('타겟 경로 변경 실패: ' + e);
+        alert('타겟 경로 변경: ' + e);
       }
     });
 
@@ -618,7 +631,7 @@
       const query = elSearchInput.value.trim();
       if (!query) return;
       try {
-        const list = await invoke('search_symbols', { query, limit: 30 });
+        const list = await safeInvoke('search_symbols', { query, limit: 30 });
         if (!list || list.length === 0) {
           elResultsBox.innerHTML = '<div class="empty-prompt">검색 결과가 없습니다.</div>';
           return;
@@ -633,7 +646,7 @@
           </div>
         `).join('');
       } catch (e) {
-        alert('탐색 실패: ' + e);
+        alert('탐색 알림: ' + e);
       }
     });
 
@@ -642,7 +655,9 @@
     });
 
     document.getElementById('btn-minimize-tray').addEventListener('click', async () => {
-      await invoke('hide_to_tray');
+      try {
+        await safeInvoke('hide_to_tray');
+      } catch (e) {}
     });
 
     function escapeHtml(str) {
