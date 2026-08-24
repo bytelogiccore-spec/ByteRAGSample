@@ -1,7 +1,9 @@
 use crate::AppState;
+use byterag_codegraph::store::ByteRagDocStored;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fs;
+use std::path::PathBuf;
 use tauri::State;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -52,6 +54,39 @@ fn parse_milestones_from_text(content: &str, plan_title: &mut String) -> Vec<Pla
     milestones
 }
 
+fn find_active_brain_plan() -> Option<(String, String)> {
+    // Dynamically search Antigravity active agent conversation brain directories
+    let base_brain = if let Ok(profile) = std::env::var("USERPROFILE") {
+        PathBuf::from(profile).join(r".gemini\antigravity\brain")
+    } else {
+        PathBuf::from(r"C:\Users\jaon1\.gemini\antigravity\brain")
+    };
+
+    if base_brain.exists() {
+        if let Ok(entries) = fs::read_dir(&base_brain) {
+            let mut plan_files = Vec::new();
+            for entry in entries.flatten() {
+                let plan_path = entry.path().join("implementation_plan.md");
+                if plan_path.exists() {
+                    if let Ok(meta) = fs::metadata(&plan_path) {
+                        if let Ok(mtime) = meta.modified() {
+                            plan_files.push((mtime, plan_path));
+                        }
+                    }
+                }
+            }
+            // Sort by latest modified
+            plan_files.sort_by(|a, b| b.0.cmp(&a.0));
+            if let Some((_, latest_plan)) = plan_files.first() {
+                if let Ok(content) = fs::read_to_string(latest_plan) {
+                    return Some((latest_plan.to_string_lossy().to_string(), content));
+                }
+            }
+        }
+    }
+    None
+}
+
 #[tauri::command]
 pub fn get_project_plan_status(state: State<AppState>) -> Result<ProjectPlanStatus, String> {
     let store = state.store.read().map_err(|e| format!("Lock error: {e:?}"))?;
@@ -62,17 +97,38 @@ pub fn get_project_plan_status(state: State<AppState>) -> Result<ProjectPlanStat
     let mut has_plan = false;
     let mut active_plan_name = String::new();
 
-    // 1. Check ByteRAG DB stored plan first (Zero Disk Mess)
-    if let Some(plan_doc) = store.get_doc("plan:implementation_plan") {
-        let parsed = parse_milestones_from_text(&plan_doc.content, &mut plan_title);
+    // 1. Live synchronization with AI Session active implementation_plan.md
+    if let Some((_path_str, brain_content)) = find_active_brain_plan() {
+        let parsed = parse_milestones_from_text(&brain_content, &mut plan_title);
         if !parsed.is_empty() {
             milestones = parsed;
             has_plan = true;
-            active_plan_name = "ByteRAG DB (plan:implementation_plan)".into();
+            active_plan_name = "Live AI Session Plan".into();
+
+            // Two-way sync: automatically persist into ByteRAG DB!
+            let _ = store.save_doc(&ByteRagDocStored {
+                id: "plan:implementation_plan".into(),
+                title: plan_title.clone(),
+                doc_type: "plan".into(),
+                content: brain_content,
+                updated_at: byterag_codegraph::store::now_unix_secs(),
+            });
         }
     }
 
-    // 2. Check physical implementation_plan.md in workspace root
+    // 2. Check ByteRAG DB stored plan (Zero Disk Mess)
+    if !has_plan {
+        if let Some(plan_doc) = store.get_doc("plan:implementation_plan") {
+            let parsed = parse_milestones_from_text(&plan_doc.content, &mut plan_title);
+            if !parsed.is_empty() {
+                milestones = parsed;
+                has_plan = true;
+                active_plan_name = "ByteRAG DB (plan:implementation_plan)".into();
+            }
+        }
+    }
+
+    // 3. Check workspace physical implementation_plan.md
     if !has_plan {
         let plan_path = target_dir.join("implementation_plan.md");
         if plan_path.exists() {
@@ -87,12 +143,10 @@ pub fn get_project_plan_status(state: State<AppState>) -> Result<ProjectPlanStat
         }
     }
 
-    // No fallback fake milestones: if empty, return pure empty state
     let total = milestones.len();
     let completed = milestones.iter().filter(|m| m.completed).count();
     let percent = if total > 0 { (completed * 100) / total } else { 0 };
 
-    // Check walkthrough.md
     let wt_path = target_dir.join("walkthrough.md");
     let wt_summary = if wt_path.exists() {
         fs::read_to_string(&wt_path).ok().map(|s| {
@@ -116,7 +170,6 @@ pub fn get_project_plan_status(state: State<AppState>) -> Result<ProjectPlanStat
 
 #[tauri::command]
 pub fn get_ai_audit_logs(_state: State<AppState>) -> Result<Vec<AiAuditEntry>, String> {
-    // Pure Empty State: no fake or hardcoded mock logs
     Ok(Vec::new())
 }
 

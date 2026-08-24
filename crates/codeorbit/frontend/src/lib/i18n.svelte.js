@@ -112,6 +112,21 @@ const translations = {
     mcp_copy_claude: '📋 Claude Desktop 설정 복사',
     mcp_copied: '✓ 설정이 클립보드에 복사되었습니다!',
 
+    // MCP Tools Descriptions (Korean)
+    tool_desc_query_graph: 'BFS 너비 우선 탐색을 통해 1~3단계 연결된 노드 및 관계 엣지 조회',
+    tool_desc_search_symbols: 'Apache Arrow 제로카피 메모리 기반 초고속 심볼 접두사 및 부분 일치 검색',
+    tool_desc_blast_radius: '심볼 수정 전 역방향 의존 체인 및 다중 홉(Multi-Hop) 파급 영향 범위 실시간 계산',
+    tool_desc_find_path: '지식 그래프 내 임의의 두 심볼 간 최단 의존 경로 및 호출 체인 탐색',
+    tool_desc_detect_cycles: '임포트, 상속, 인터페이스 구현, 함수 호출 간의 순환 참조(Circular Dependency) 탐지',
+    tool_desc_reindex: '수정되거나 변경된 워크스페이스 소스 파일에 대해 즉시 증분 인덱싱 실행',
+    tool_desc_export_brdb: '전체 AST 그래프 + 문서 저장소 + 검증 테스트 스위트를 단일 포터블 .brdb 파일로 압축 패킹',
+    tool_desc_import_brdb: '포터블 .brdb 단일 아카이브 파일로부터 전체 지식 그래프와 문서를 즉시 복원 및 마운트',
+    tool_desc_index_status: '현재 파싱된 파일 수, 심볼 노드, 변경 플래그 및 WAL/WOS 메모리 상태 검사',
+    tool_desc_get_symbol: '특정 심볼 노드의 전체 메타데이터, 정의 위치 및 소스 코드 파일 경로 조회',
+    tool_desc_get_neighbors: '특정 심볼과 직접 1단계(1-Hop) 연결된 진입/진출 이웃 심볼 노드 목록 조회',
+    tool_desc_list_by_type: 'AST 타입별(구조체, 클래스, 함수, 인터페이스, 트레이트 등) 필터링 심볼 목록 조회',
+    tool_desc_read_snippet: '특정 AST 심볼 노드가 선언된 정확한 소스 코드 원본 라인 및 스니펫 읽기',
+
     // Settings Tab
     settings_header: '시스템 및 시작프로그램 설정',
     settings_autostart_title: '윈도우 부팅 시 CodeOrbit 자동 실행 (Autostart)',
@@ -213,6 +228,21 @@ const translations = {
     mcp_copy_cursor: '📋 Copy Cursor MCP Config',
     mcp_copy_claude: '📋 Copy Claude Desktop Config',
     mcp_copied: '✓ Config copied to clipboard!',
+
+    // MCP Tools Descriptions (English)
+    tool_desc_query_graph: 'Query nodes and edges via BFS traversal (Depth 1-3)',
+    tool_desc_search_symbols: 'Ultra-fast symbol prefix & substring search using Apache Arrow zero-copy memory',
+    tool_desc_blast_radius: 'Calculate multi-hop impact radius and reverse dependencies before modifying symbols',
+    tool_desc_find_path: 'Find shortest dependency path between any two symbols in the knowledge graph',
+    tool_desc_detect_cycles: 'Detect circular dependencies across imports, extends, implements, and calls',
+    tool_desc_reindex: 'Trigger incremental indexing on modified workspace source files',
+    tool_desc_export_brdb: 'Pack full AST graph + docs + test suites into a single portable .brdb archive',
+    tool_desc_import_brdb: 'Restore full AST graph and docs instantly from a portable .brdb file',
+    tool_desc_index_status: 'Inspect current file counts, symbol nodes, dirty flags, and WAL memory state',
+    tool_desc_get_symbol: 'Retrieve full metadata and location of a specific symbol node',
+    tool_desc_get_neighbors: 'Get direct 1-hop inbound and outbound connected neighbor symbols',
+    tool_desc_list_by_type: 'List symbols filtered by AST type (Struct, Class, Function, Interface)',
+    tool_desc_read_snippet: 'Read exact code snippet lines for a specific AST node',
 
     // Settings Tab
     settings_header: 'SYSTEM & AUTOSTART CONFIGURATION',

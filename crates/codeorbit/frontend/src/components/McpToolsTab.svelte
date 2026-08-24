@@ -4,19 +4,19 @@
   let copyMsg = $state('');
 
   let tools = [
-    { name: 'byterag_query_graph', desc: 'Query nodes and edges via BFS traversal (Depth 1-3)', icon: '🔍' },
-    { name: 'byterag_search_symbols', desc: 'Ultra-fast symbol prefix & substring search using Apache Arrow zero-copy memory', icon: '⚡' },
-    { name: 'byterag_blast_radius', desc: 'Calculate multi-hop impact radius and reverse dependencies before modifying symbols', icon: '💥' },
-    { name: 'byterag_find_path', desc: 'Find shortest dependency path between any two symbols in the knowledge graph', icon: '🛣️' },
-    { name: 'byterag_detect_cycles', desc: 'Detect circular dependencies across imports, extends, implements, and calls', icon: '🔄' },
-    { name: 'byterag_reindex', desc: 'Trigger incremental indexing on modified workspace source files', icon: '🔁' },
-    { name: 'byterag_export_brdb', desc: 'Pack full AST graph + docs + test suites into a single portable .brdb archive', icon: '📦' },
-    { name: 'byterag_import_brdb', desc: 'Restore full AST graph and docs instantly from a portable .brdb file', icon: '📥' },
-    { name: 'byterag_index_status', desc: 'Inspect current file counts, symbol nodes, dirty flags, and WAL memory state', icon: '📊' },
-    { name: 'byterag_get_symbol', desc: 'Retrieve full metadata and location of a specific symbol node', icon: '📌' },
-    { name: 'byterag_get_neighbors', desc: 'Get direct 1-hop inbound and outbound connected neighbor symbols', icon: '🌐' },
-    { name: 'byterag_list_by_type', desc: 'List symbols filtered by AST type (Struct, Class, Function, Interface)', icon: '📋' },
-    { name: 'byterag_read_snippet', desc: 'Read exact code snippet lines for a specific AST node', icon: '📖' },
+    { name: 'byterag_query_graph', descKey: 'tool_desc_query_graph', icon: '🔍' },
+    { name: 'byterag_search_symbols', descKey: 'tool_desc_search_symbols', icon: '⚡' },
+    { name: 'byterag_blast_radius', descKey: 'tool_desc_blast_radius', icon: '💥' },
+    { name: 'byterag_find_path', descKey: 'tool_desc_find_path', icon: '🛣️' },
+    { name: 'byterag_detect_cycles', descKey: 'tool_desc_detect_cycles', icon: '🔄' },
+    { name: 'byterag_reindex', descKey: 'tool_desc_reindex', icon: '🔁' },
+    { name: 'byterag_export_brdb', descKey: 'tool_desc_export_brdb', icon: '📦' },
+    { name: 'byterag_import_brdb', descKey: 'tool_desc_import_brdb', icon: '📥' },
+    { name: 'byterag_index_status', descKey: 'tool_desc_index_status', icon: '📊' },
+    { name: 'byterag_get_symbol', descKey: 'tool_desc_get_symbol', icon: '📌' },
+    { name: 'byterag_get_neighbors', descKey: 'tool_desc_get_neighbors', icon: '🌐' },
+    { name: 'byterag_list_by_type', descKey: 'tool_desc_list_by_type', icon: '📋' },
+    { name: 'byterag_read_snippet', descKey: 'tool_desc_read_snippet', icon: '📖' },
   ];
 
   function copyCursorConfig() {
@@ -80,14 +80,14 @@
     </div>
   </div>
 
-  <!-- MCP Tools Grid -->
-  <div class="flex-1 overflow-y-auto grid grid-cols-2 gap-3 pr-1">
+  <!-- MCP Tools Grid with Live Reactive i18n Tool Descriptions -->
+  <div class="flex-1 overflow-y-auto grid grid-cols-2 gap-3 pr-1 custom-scrollbar">
     {#each tools as tool}
       <div class="p-3.5 bg-[#131315] border border-white/10 hover:border-[#06b6d4]/40 rounded-md flex items-start gap-3 transition-all">
         <span class="text-xl">{tool.icon}</span>
         <div class="flex-1 overflow-hidden">
           <div class="text-xs font-bold font-mono text-[#4cd7f6] truncate">{tool.name}</div>
-          <div class="text-[11px] text-[#869397] font-mono mt-1 leading-relaxed">{tool.desc}</div>
+          <div class="text-[11px] text-[#869397] font-mono mt-1 leading-relaxed">{t(tool.descKey)}</div>
         </div>
       </div>
     {/each}
