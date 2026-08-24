@@ -8,7 +8,6 @@ use byterag_codegraph::GraphStore;
 use commands::*;
 use config::{ensure_workspace_in_config, load_config, save_config};
 use std::env;
-use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 use std::thread;
 use tauri::menu::{Menu, MenuItem};

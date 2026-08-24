@@ -56,6 +56,7 @@ pub enum EdgeType {
 }
 
 impl EdgeType {
+    #[allow(dead_code)]
     pub fn as_str(&self) -> &'static str {
         match self {
             EdgeType::Defines => "defines",
@@ -103,6 +104,7 @@ pub struct GraphEdge {
     pub edge_type: EdgeType,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GraphData {
     pub nodes: std::collections::HashMap<String, GraphNode>,

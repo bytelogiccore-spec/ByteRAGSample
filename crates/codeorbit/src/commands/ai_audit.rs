@@ -1,9 +1,7 @@
-use crate::config::load_config;
 use crate::AppState;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fs;
-use std::path::{Path, PathBuf};
 use tauri::State;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -76,7 +74,7 @@ pub fn get_project_plan_status(state: State<AppState>) -> Result<ProjectPlanStat
             PlanMilestone { title: "Phase 1: 백엔드 모듈화 (Rust clean arch)".into(), completed: true, raw: "".into() },
             PlanMilestone { title: "Phase 2: Svelte 5 + Tailwind 프론트엔드 전환".into(), completed: true, raw: "".into() },
             PlanMilestone { title: "Phase 3: 단위/통합 테스트 커버리지 전수 구축".into(), completed: true, raw: "".into() },
-            PlanMilestone { title: "Phase 4: AI 오케스트레이션 & 실시간 감사 대시보드 구축".into(), completed: false, raw: "".into() },
+            PlanMilestone { title: "Phase 4: AI 오케스트레이션 & 실시간 감사 대시보드 구축".into(), completed: true, raw: "".into() },
         ];
     }
 

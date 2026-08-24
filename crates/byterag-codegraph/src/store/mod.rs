@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::types::{GraphEdge, GraphNode as SampleNode};
 
-pub use index::{file_mtime_secs, now_unix_secs};
+pub use index::now_unix_secs;
 
 #[derive(Clone, Deserialize, Serialize)]
 pub(crate) struct FileMetaStored {
@@ -21,6 +21,7 @@ pub(crate) struct FileMetaStored {
     pub edge_keys: Vec<String>,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ByteRagDocStored {
     pub id: String,
@@ -30,6 +31,7 @@ pub struct ByteRagDocStored {
     pub updated_at: u64,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ByteRagTestResultStored {
     pub run_at: u64,
@@ -39,6 +41,7 @@ pub struct ByteRagTestResultStored {
     pub test_cases: Vec<ByteRagTestCaseItem>,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ByteRagTestCaseItem {
     pub test_id: String,
@@ -61,6 +64,7 @@ pub struct GraphStore {
     pub(crate) last_file_count: Arc<Mutex<usize>>,
 }
 
+#[allow(dead_code)]
 impl GraphStore {
     pub fn open(target_dir: PathBuf) -> Self {
         let db_dir = target_dir.join(".byterag");
