@@ -1,7 +1,6 @@
 use crate::AppState;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::fs;
 use tauri::State;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -55,48 +54,29 @@ fn parse_milestones_from_text(content: &str, plan_title: &mut String) -> Vec<Pla
 #[tauri::command]
 pub fn get_project_plan_status(state: State<AppState>) -> Result<ProjectPlanStatus, String> {
     let store = state.store.read().map_err(|e| format!("Lock error: {e:?}"))?;
-    let target_dir = store.target_dir();
 
     let mut milestones = Vec::new();
     let mut plan_title = String::from("No active plan found");
     let mut has_plan = false;
     let mut active_plan_name = String::new();
 
-    // Strictly check physical plan files within the actual selected workspace directory
-    let plan_candidates = [
-        target_dir.join("implementation_plan.md"),
-        target_dir.join("PLAN.md"),
-        target_dir.join("plan.md"),
-        target_dir.join("docs").join("plan.md"),
-        target_dir.join("docs").join("implementation_plan.md"),
-    ];
+    // 100% Pure ByteRAG DB Query (Zero Disk Mess):
+    // Only query documents stored in the active workspace's ByteRAG DB (`doc_type == "plan"`)
+    let all_docs = store.list_docs();
+    let plan_docs: Vec<_> = all_docs.into_iter().filter(|d| d.doc_type == "plan").collect();
 
-    for candidate in &plan_candidates {
-        if candidate.exists() {
-            if let Ok(content) = fs::read_to_string(candidate) {
-                let parsed = parse_milestones_from_text(&content, &mut plan_title);
-                if !parsed.is_empty() {
-                    milestones = parsed;
-                    has_plan = true;
-                    active_plan_name = candidate.file_name().unwrap_or_default().to_string_lossy().to_string();
-                    break;
-                }
-            }
+    if let Some(active_doc) = plan_docs.first() {
+        let parsed = parse_milestones_from_text(&active_doc.content, &mut plan_title);
+        if !parsed.is_empty() {
+            milestones = parsed;
+            has_plan = true;
+            active_plan_name = format!("ByteRAG DB ({})", active_doc.title);
         }
     }
 
     let total = milestones.len();
     let completed = milestones.iter().filter(|m| m.completed).count();
     let percent = if total > 0 { (completed * 100) / total } else { 0 };
-
-    let wt_path = target_dir.join("walkthrough.md");
-    let wt_summary = if wt_path.exists() {
-        fs::read_to_string(&wt_path).ok().map(|s| {
-            s.lines().take(10).collect::<Vec<_>>().join("\n")
-        })
-    } else {
-        None
-    };
 
     Ok(ProjectPlanStatus {
         has_plan,
@@ -106,7 +86,7 @@ pub fn get_project_plan_status(state: State<AppState>) -> Result<ProjectPlanStat
         completed_tasks: completed,
         progress_percent: percent,
         milestones,
-        walkthrough_summary: wt_summary,
+        walkthrough_summary: None,
     })
 }
 
