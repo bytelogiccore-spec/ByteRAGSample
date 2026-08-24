@@ -139,6 +139,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             get_index_status,
             trigger_reindex,
+            export_brdb_file,
+            import_brdb_file,
             search_symbols,
             get_workspaces,
             add_workspace,
