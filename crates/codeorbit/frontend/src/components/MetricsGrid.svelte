@@ -11,52 +11,44 @@
 </script>
 
 <div class="grid grid-cols-4 gap-4 select-none">
-  <!-- Card 1: Indexed Files (Cyan Glow) -->
-  <div class="glass-panel rounded-lg p-5 flex flex-col justify-between transition-all relative overflow-hidden group">
-    <div class="flex items-center justify-between">
-      <span class="text-[11px] font-mono text-[#869397] uppercase tracking-wider">{t('metric_files')}</span>
-      <span class="text-xs px-1.5 py-0.5 rounded bg-[#06b6d4]/10 text-[#4cd7f6] font-mono">AST</span>
+  <!-- Card 1: Indexed Files (Cyan Accent + Watermark Icon) -->
+  <div class="glass-panel rounded-lg p-5 flex flex-col justify-between hover:bg-white/[0.02] transition-all relative overflow-hidden group">
+    <div class="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition-opacity">
+      <span class="material-symbols-outlined text-4xl text-[#4cd7f6]">folder_zip</span>
     </div>
-    <div class="my-3">
-      <div class="text-3xl font-black font-mono text-[#4cd7f6] tracking-tight">{status.files || 0}</div>
-    </div>
-    <div class="text-[11px] font-mono text-[#869397]">{t('metric_files_desc')}</div>
+    <span class="text-[11px] font-mono text-[#869397] uppercase tracking-wider mb-2">{t('metric_files')}</span>
+    <div class="font-mono text-[28px] font-bold text-[#4cd7f6]">{status.files || 0}</div>
+    <div class="text-[11px] font-mono text-[#869397] mt-1">{t('metric_files_desc')}</div>
   </div>
 
-  <!-- Card 2: Knowledge Nodes (Violet Glow) -->
-  <div class="glass-panel rounded-lg p-5 flex flex-col justify-between transition-all relative overflow-hidden group">
-    <div class="flex items-center justify-between">
-      <span class="text-[11px] font-mono text-[#869397] uppercase tracking-wider">{t('metric_nodes')}</span>
-      <span class="text-xs px-1.5 py-0.5 rounded bg-[#8b5cf6]/10 text-[#d0bcff] font-mono">SYMBOLS</span>
+  <!-- Card 2: Knowledge Symbols (Violet Accent + Watermark Icon) -->
+  <div class="glass-panel rounded-lg p-5 flex flex-col justify-between hover:bg-white/[0.02] transition-all relative overflow-hidden group">
+    <div class="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition-opacity">
+      <span class="material-symbols-outlined text-4xl text-[#d0bcff]">category</span>
     </div>
-    <div class="my-3">
-      <div class="text-3xl font-black font-mono text-[#d0bcff] tracking-tight">{status.nodes || 0}</div>
-    </div>
-    <div class="text-[11px] font-mono text-[#869397]">{t('metric_nodes_desc')}</div>
+    <span class="text-[11px] font-mono text-[#869397] uppercase tracking-wider mb-2">{t('metric_nodes')}</span>
+    <div class="font-mono text-[28px] font-bold text-[#d0bcff]">{status.nodes || 0}</div>
+    <div class="text-[11px] font-mono text-[#869397] mt-1">{t('metric_nodes_desc')}</div>
   </div>
 
-  <!-- Card 3: Relation Edges (Emerald Glow) -->
-  <div class="glass-panel rounded-lg p-5 flex flex-col justify-between transition-all relative overflow-hidden group">
-    <div class="flex items-center justify-between">
-      <span class="text-[11px] font-mono text-[#869397] uppercase tracking-wider">{t('metric_edges')}</span>
-      <span class="text-xs px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono">RELATIONS</span>
+  <!-- Card 3: Dependency Edges (Emerald Accent + Watermark Icon) -->
+  <div class="glass-panel rounded-lg p-5 flex flex-col justify-between hover:bg-white/[0.02] transition-all relative overflow-hidden group">
+    <div class="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition-opacity">
+      <span class="material-symbols-outlined text-4xl text-emerald-400">account_tree</span>
     </div>
-    <div class="my-3">
-      <div class="text-3xl font-black font-mono text-emerald-400 tracking-tight">{status.edges || 0}</div>
-    </div>
-    <div class="text-[11px] font-mono text-[#869397]">{t('metric_edges_desc')}</div>
+    <span class="text-[11px] font-mono text-[#869397] uppercase tracking-wider mb-2">{t('metric_edges')}</span>
+    <div class="font-mono text-[28px] font-bold text-emerald-400">{status.edges || 0}</div>
+    <div class="text-[11px] font-mono text-[#869397] mt-1">{t('metric_edges_desc')}</div>
   </div>
 
-  <!-- Card 4: 5T Storage Engine Mode (Slate Glow) -->
-  <div class="glass-panel rounded-lg p-5 flex flex-col justify-between transition-all relative overflow-hidden group">
-    <div class="flex items-center justify-between">
-      <span class="text-[11px] font-mono text-[#869397] uppercase tracking-wider">{t('metric_engine')}</span>
-      <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#10b981]"></span>
+  <!-- Card 4: 5-Tier WAL/WOS Storage Engine Mode -->
+  <div class="glass-panel rounded-lg p-5 flex flex-col justify-between hover:bg-white/[0.02] transition-all relative overflow-hidden group">
+    <div class="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition-opacity">
+      <span class="material-symbols-outlined text-4xl text-[#869397]">storage</span>
     </div>
-    <div class="my-3">
-      <div class="text-lg font-bold font-mono text-[#e5e1e4]">5-Tier WAL/WOS</div>
-    </div>
-    <div class="flex items-center justify-between text-[11px] font-mono text-[#869397]">
+    <span class="text-[11px] font-mono text-[#869397] uppercase tracking-wider mb-2">{t('metric_engine')}</span>
+    <div class="font-mono text-[18px] font-bold text-[#e5e1e4]">5-Tier WAL/WOS</div>
+    <div class="flex items-center justify-between text-[11px] font-mono text-[#869397] mt-1">
       <span>{t('metric_engine_desc')}</span>
       <span class="text-white/40">{formattedDate}</span>
     </div>

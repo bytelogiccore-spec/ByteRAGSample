@@ -2,91 +2,54 @@
   import { t } from '../lib/i18n.svelte.js';
 
   let { activeTab = $bindable('tab-overview'), status = {} } = $props();
+
+  const navItems = [
+    { id: 'tab-overview', labelKey: 'nav_overview', icon: 'bolt' },
+    { id: 'tab-docs', labelKey: 'nav_docs', icon: 'database' },
+    { id: 'tab-tests', labelKey: 'nav_tests', icon: 'verified_user' },
+    { id: 'tab-mcp', labelKey: 'nav_mcp', icon: 'extension' },
+    { id: 'tab-settings', labelKey: 'nav_settings', icon: 'settings' },
+  ];
 </script>
 
-<aside class="w-[270px] bg-[#131315]/95 backdrop-blur-xl border-r border-white/10 flex flex-col justify-between select-none">
+<aside class="w-[280px] bg-[#131315] border-r border-white/10 flex flex-col justify-between select-none shrink-0 z-40">
   <div>
-    <!-- Brand Header with Stitch Cyber Accent -->
-    <div class="p-5 flex items-center gap-3.5 border-b border-white/10">
-      <div class="w-9 h-9 rounded-md bg-gradient-to-br from-[#06b6d4] to-[#8b5cf6] flex items-center justify-center font-black text-sm text-black shadow-[0_0_16px_rgba(6,182,212,0.45)]">
-        CO
+    <!-- Stitch Brand Header -->
+    <div class="p-6 flex items-center gap-3.5 border-b border-white/10">
+      <div class="w-10 h-10 rounded-lg bg-surface-variant flex items-center justify-center border border-white/10 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+        <span class="material-symbols-outlined text-[#4cd7f6] text-[22px]">rocket_launch</span>
       </div>
       <div>
-        <div class="text-[15px] font-bold text-[#e5e1e4] tracking-tight">CodeOrbit</div>
-        <div class="text-[10px] font-mono text-[#4cd7f6] bg-[#06b6d4]/10 px-1.5 py-0.5 rounded border border-[#06b6d4]/20 mt-0.5">
-          {t('engine_badge')}
-        </div>
+        <h1 class="text-lg font-extrabold text-white tracking-tight leading-none">CodeOrbit</h1>
+        <span class="text-[10px] font-mono text-[#869397] tracking-wider block mt-1">BYTERAG ENGINE</span>
       </div>
     </div>
 
-    <!-- Navigation Tabs (Stitch Style with 2px Left Accent Line) -->
-    <ul class="p-3 flex flex-col gap-1.5 list-none">
-      <li>
+    <!-- Navigation List (Stitch 2px Cyan Border & Background Glow) -->
+    <nav class="p-3 space-y-1.5 overflow-y-auto">
+      {#each navItems as item}
         <button
-          onclick={() => activeTab = 'tab-overview'}
-          class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-md text-[13px] font-medium transition-all text-left relative {activeTab === 'tab-overview' ? 'bg-[#1c1b1d] text-white border border-white/10 font-bold' : 'text-[#869397] hover:text-[#e5e1e4] hover:bg-[#18181b]'}"
+          onclick={() => activeTab = item.id}
+          class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13px] font-medium transition-all text-left relative {activeTab === item.id ? 'bg-[#06b6d4]/10 text-white border-l-2 border-[#06b6d4] font-bold shadow-[0_0_12px_rgba(6,182,212,0.1)]' : 'text-[#869397] hover:text-[#e5e1e4] hover:bg-[#18181b] border-l-2 border-transparent'}"
         >
-          {#if activeTab === 'tab-overview'}
-            <div class="absolute left-0 top-2 bottom-2 w-[3px] bg-[#06b6d4] rounded-r shadow-[0_0_8px_#06b6d4]"></div>
-          {/if}
-          {t('nav_overview')}
+          <span class="material-symbols-outlined text-[20px] {activeTab === item.id ? 'text-[#4cd7f6]' : 'text-[#869397]'}">{item.icon}</span>
+          <span>{t(item.labelKey)}</span>
         </button>
-      </li>
-      <li>
-        <button
-          onclick={() => activeTab = 'tab-docs'}
-          class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-md text-[13px] font-medium transition-all text-left relative {activeTab === 'tab-docs' ? 'bg-[#1c1b1d] text-white border border-white/10 font-bold' : 'text-[#869397] hover:text-[#e5e1e4] hover:bg-[#18181b]'}"
-        >
-          {#if activeTab === 'tab-docs'}
-            <div class="absolute left-0 top-2 bottom-2 w-[3px] bg-[#06b6d4] rounded-r shadow-[0_0_8px_#06b6d4]"></div>
-          {/if}
-          {t('nav_docs')}
-        </button>
-      </li>
-      <li>
-        <button
-          onclick={() => activeTab = 'tab-tests'}
-          class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-md text-[13px] font-medium transition-all text-left relative {activeTab === 'tab-tests' ? 'bg-[#1c1b1d] text-white border border-white/10 font-bold' : 'text-[#869397] hover:text-[#e5e1e4] hover:bg-[#18181b]'}"
-        >
-          {#if activeTab === 'tab-tests'}
-            <div class="absolute left-0 top-2 bottom-2 w-[3px] bg-[#06b6d4] rounded-r shadow-[0_0_8px_#06b6d4]"></div>
-          {/if}
-          {t('nav_tests')}
-        </button>
-      </li>
-      <li>
-        <button
-          onclick={() => activeTab = 'tab-mcp'}
-          class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-md text-[13px] font-medium transition-all text-left relative {activeTab === 'tab-mcp' ? 'bg-[#1c1b1d] text-white border border-white/10 font-bold' : 'text-[#869397] hover:text-[#e5e1e4] hover:bg-[#18181b]'}"
-        >
-          {#if activeTab === 'tab-mcp'}
-            <div class="absolute left-0 top-2 bottom-2 w-[3px] bg-[#06b6d4] rounded-r shadow-[0_0_8px_#06b6d4]"></div>
-          {/if}
-          {t('nav_mcp')}
-        </button>
-      </li>
-      <li>
-        <button
-          onclick={() => activeTab = 'tab-settings'}
-          class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-md text-[13px] font-medium transition-all text-left relative {activeTab === 'tab-settings' ? 'bg-[#1c1b1d] text-white border border-white/10 font-bold' : 'text-[#869397] hover:text-[#e5e1e4] hover:bg-[#18181b]'}"
-        >
-          {#if activeTab === 'tab-settings'}
-            <div class="absolute left-0 top-2 bottom-2 w-[3px] bg-[#06b6d4] rounded-r shadow-[0_0_8px_#06b6d4]"></div>
-          {/if}
-          {t('nav_settings')}
-        </button>
-      </li>
-    </ul>
+      {/each}
+    </nav>
   </div>
 
-  <!-- Sidebar Footer Status with Ambient Pulse -->
+  <!-- Bottom System Telemetry Indicator -->
   <div class="p-4 border-t border-white/10 flex flex-col gap-2.5">
-    <div class="flex items-center justify-between px-3 py-2 bg-[#18181b]/90 border border-white/10 rounded-md text-[11px] font-mono">
+    <div class="flex items-center justify-between px-3 py-2.5 bg-[#18181b] border border-white/10 rounded-md text-[11px] font-mono">
       <div class="flex items-center gap-2">
-        <span class="w-[7px] h-[7px] rounded-full {status.indexing ? 'bg-amber-500 shadow-[0_0_8px_#f59e0b]' : 'bg-[#10b981] shadow-[0_0_8px_#10b981]'}"></span>
-        <span class="text-[#e5e1e4] font-semibold">{status.indexing ? t('status_indexing') : t('status_ready')}</span>
+        <div class="relative w-3 h-3 flex items-center justify-center">
+          <div class="ambient-glow-cyan"></div>
+          <div class="w-1.5 h-1.5 rounded-full {status.indexing ? 'bg-amber-400' : 'bg-[#4cd7f6]'} relative z-10"></div>
+        </div>
+        <span class="text-[#4cd7f6] font-semibold">{status.indexing ? t('status_indexing') : 'MCP READY v0.1.0'}</span>
       </div>
-      <span class="text-[#869397]">v0.1.0</span>
+      <span class="text-[#869397]">AST RAG</span>
     </div>
   </div>
 </aside>

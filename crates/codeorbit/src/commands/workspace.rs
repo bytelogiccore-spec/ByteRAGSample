@@ -35,7 +35,7 @@ pub fn export_brdb_file(path: Option<String>, state: State<AppState>) -> Result<
         .map(PathBuf::from)
         .unwrap_or_else(|| store.default_brdb_path());
     store.export_brdb(&target_path, 1)?;
-    Ok(format!("성공적으로 .brdb 단일 파일로 내보냈습니다: {}", target_path.display()))
+    Ok(format!("Successfully exported to .brdb archive: {}", target_path.display()))
 }
 
 #[tauri::command]
@@ -43,7 +43,7 @@ pub fn import_brdb_file(path: String, state: State<AppState>) -> Result<String, 
     let mut store = state.store.write().map_err(|e| format!("Lock error: {e:?}"))?;
     let target_path = PathBuf::from(&path);
     store.import_brdb(&target_path)?;
-    Ok(format!("성공적으로 .brdb 파일을 불러왔습니다: {}", target_path.display()))
+    Ok(format!("Successfully loaded .brdb file: {}", target_path.display()))
 }
 
 #[tauri::command]
@@ -51,6 +51,18 @@ pub fn search_symbols(query: String, limit: Option<usize>, state: State<AppState
     let store = state.store.read().map_err(|e| format!("Lock error: {e:?}"))?;
     let matches = store.search_symbols_with_limit(&query, limit.unwrap_or(50));
     serde_json::to_value(matches).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn get_blast_radius(seed: String, depth: Option<usize>, state: State<AppState>) -> Result<Value, String> {
+    let store = state.store.read().map_err(|e| format!("Lock error: {e:?}"))?;
+    Ok(store.blast_radius(&seed, depth.unwrap_or(2)))
+}
+
+#[tauri::command]
+pub fn get_symbol_neighbors(seed: String, state: State<AppState>) -> Result<Value, String> {
+    let store = state.store.read().map_err(|e| format!("Lock error: {e:?}"))?;
+    Ok(store.get_neighbors(&seed, None))
 }
 
 #[tauri::command]

@@ -1,17 +1,17 @@
-// Prevents black console window from appearing on Windows desktop launch
-#![windows_subsystem = "windows"]
+// Prevents additional console window on Windows in release, DO NOT REMOVE!!
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-pub mod commands;
-pub mod config;
+mod commands;
+mod config;
 
-use byterag_codegraph::GraphStore;
+use byterag_codegraph::store::GraphStore;
 use commands::*;
 use config::{ensure_workspace_in_config, load_config, save_config};
 use std::env;
 use std::sync::{Arc, RwLock};
 use std::thread;
 use tauri::menu::{Menu, MenuItem};
-use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tauri::tray::TrayIconBuilder;
 use tauri::{Manager, WindowEvent};
 
 pub struct AppState {
@@ -58,9 +58,9 @@ fn main() {
             store: Arc::clone(&store),
         })
         .setup(|app| {
-            let show_item = MenuItem::with_id(app, "show", "대시보드 열기", true, None::<&str>)?;
-            let reindex_item = MenuItem::with_id(app, "reindex", "⚡ 재인덱싱 실행", true, None::<&str>)?;
-            let quit_item = MenuItem::with_id(app, "quit", "종료", true, None::<&str>)?;
+            let show_item = MenuItem::with_id(app, "show", "Open Dashboard", true, None::<&str>)?;
+            let reindex_item = MenuItem::with_id(app, "reindex", "⚡ Trigger Reindex", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "Quit CodeOrbit", true, None::<&str>)?;
 
             let tray_menu = Menu::with_items(app, &[&show_item, &reindex_item, &quit_item])?;
 
@@ -78,14 +78,14 @@ fn main() {
                     }
                     "reindex" => {
                         let state = app.state::<AppState>();
-                        let worker_opt = {
-                            state.store.read().ok().map(|guard| guard.clone_arcs())
-                        };
-                        if let Some(worker) = worker_opt {
-                            thread::spawn(move || {
-                                worker.index_directory();
-                            });
-                        }
+                        let store_arc = Arc::clone(&state.store);
+                        thread::spawn(move || {
+                            if let Ok(store) = store_arc.read() {
+                                let store_bg = store.clone_arcs();
+                                drop(store);
+                                store_bg.index_directory();
+                            }
+                        });
                     }
                     "quit" => {
                         app.exit(0);
@@ -93,21 +93,17 @@ fn main() {
                     _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
-                    if let TrayIconEvent::Click {
-                        button: MouseButton::Left,
-                        button_state: MouseButtonState::Up,
+                    if let tauri::tray::TrayIconEvent::Click {
+                        button: tauri::tray::MouseButton::Left,
+                        button_state: tauri::tray::MouseButtonState::Up,
                         ..
                     } = event
                     {
                         let app = tray.app_handle();
                         if let Some(window) = app.get_webview_window("main") {
-                            if window.is_visible().unwrap_or(false) {
-                                let _ = window.hide();
-                            } else {
-                                let _ = window.show();
-                                let _ = window.unminimize();
-                                let _ = window.set_focus();
-                            }
+                            let _ = window.show();
+                            let _ = window.unminimize();
+                            let _ = window.set_focus();
                         }
                     }
                 })
@@ -135,6 +131,8 @@ fn main() {
             export_brdb_file,
             import_brdb_file,
             search_symbols,
+            get_blast_radius,
+            get_symbol_neighbors,
             get_workspaces,
             add_workspace,
             remove_workspace,
