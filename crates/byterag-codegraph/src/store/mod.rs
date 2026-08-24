@@ -77,9 +77,20 @@ impl GraphStore {
             let _ = fs::remove_file(&legacy_json);
         }
 
-        let db = Database::open(&db_dir).unwrap_or_else(|_| {
-            Arc::new(Database::open_in_memory().expect("Failed to open ByteRAG Database"))
-        });
+        let brdb_file = db_dir.join("graph.brdb");
+        let db = if brdb_file.exists() {
+            Database::open_from_file(&brdb_file)
+                .map(Arc::new)
+                .unwrap_or_else(|_| {
+                    Database::open(&db_dir).unwrap_or_else(|_| {
+                        Arc::new(Database::open_in_memory().expect("Failed to open ByteRAG Database"))
+                    })
+                })
+        } else {
+            Database::open(&db_dir).unwrap_or_else(|_| {
+                Arc::new(Database::open_in_memory().expect("Failed to open ByteRAG Database"))
+            })
+        };
 
         Self {
             target_dir,

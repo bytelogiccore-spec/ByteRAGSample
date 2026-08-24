@@ -17,6 +17,20 @@ impl GraphStore {
             .export_to_file_version(path, format_version)
             .map_err(|e| e.to_string())?;
         self.clear_dirty_if_unchanged(write_at);
+
+        // Clean up temporary live WAL and WOS cache files, leaving only the clean .brdb single file
+        let db_dir = self.target_dir.join(".byterag");
+        if db_dir.exists() {
+            let wos_dir = db_dir.join("wos");
+            if wos_dir.exists() {
+                let _ = fs::remove_dir_all(&wos_dir);
+            }
+            let wal_log = db_dir.join("wal.log");
+            if wal_log.exists() {
+                let _ = fs::remove_file(&wal_log);
+            }
+        }
+
         Ok(())
     }
 

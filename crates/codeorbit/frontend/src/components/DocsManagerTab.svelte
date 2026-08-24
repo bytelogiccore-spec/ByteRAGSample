@@ -8,6 +8,8 @@
   let newDocTitle = $state('');
   let newDocType = $state('plan');
   let saveSuccessMsg = $state('');
+  let searchQuery = $state('');
+  let selectedCategory = $state('ALL');
 
   async function loadDocs() {
     try {
@@ -68,19 +70,43 @@
     }
   }
 
+  // Filtered and Category Foldering
+  let categories = [
+    { key: 'ALL', label: '전체 문서', icon: '📂' },
+    { key: 'plan', label: '작업 계획서 (Plans)', icon: '📋' },
+    { key: 'spec', label: '요구 사양서 (Specs)', icon: '📐' },
+    { key: 'manual', label: '기능 매뉴얼 (Manuals)', icon: '📖' },
+    { key: 'general', label: '일반 지식 (General)', icon: '📝' },
+  ];
+
+  let filteredDocs = $derived.by(() => {
+    let list = docs;
+    if (selectedCategory !== 'ALL') {
+      list = list.filter(d => d.doc_type === selectedCategory);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      list = list.filter(d => 
+        d.title.toLowerCase().includes(q) || 
+        (d.content && d.content.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  });
+
   $effect(() => {
     loadDocs();
   });
 </script>
 
 <div class="flex-1 flex gap-4 overflow-hidden select-none">
-  <!-- Left: Docs List stored in ByteRAG -->
-  <div class="w-72 bg-[#131315] border border-white/10 rounded-md p-4 flex flex-col gap-3">
+  <!-- Left: Folders & Tree Explorer -->
+  <div class="w-80 bg-[#131315] border border-white/10 rounded-md p-4 flex flex-col gap-3">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
         <span class="text-sm">🗄️</span>
         <div>
-          <div class="text-xs font-bold text-[#e5e1e4] tracking-tight">ByteRAG 문서 저장소</div>
+          <div class="text-xs font-bold text-[#e5e1e4] tracking-tight">ByteRAG 문서 트리</div>
           <div class="text-[9px] font-mono text-[#06b6d4]">Zero Disk Mess (Pure DB)</div>
         </div>
       </div>
@@ -90,6 +116,38 @@
       >
         + 새 문서
       </button>
+    </div>
+
+    <!-- Search Box for Docs -->
+    <div class="relative">
+      <input
+        type="text"
+        bind:value={searchQuery}
+        placeholder="문서 제목, 본문 키워드 검색..."
+        class="w-full bg-[#18181b] border border-white/10 focus:border-[#06b6d4] rounded px-3 py-1.5 text-xs font-mono text-[#e5e1e4] outline-none transition-all placeholder:text-[#869397]"
+      />
+      {#if searchQuery}
+        <button
+          onclick={() => searchQuery = ''}
+          class="absolute right-2.5 top-1.5 text-xs text-[#869397] hover:text-white"
+        >
+          ✕
+        </button>
+      {/if}
+    </div>
+
+    <!-- Folder Category Tree Selector -->
+    <div class="flex flex-wrap gap-1 border-b border-white/5 pb-2">
+      {#each categories as cat}
+        <button
+          type="button"
+          onclick={() => selectedCategory = cat.key}
+          class="px-2 py-1 rounded text-[10px] font-mono transition-all flex items-center gap-1 cursor-pointer {selectedCategory === cat.key ? 'bg-[#06b6d4]/20 text-[#4cd7f6] border border-[#06b6d4]/40 font-bold' : 'bg-[#18181b] text-[#869397] hover:text-[#e5e1e4] border border-white/5'}"
+        >
+          <span>{cat.icon}</span>
+          <span>{cat.label.split(' ')[0]}</span>
+        </button>
+      {/each}
     </div>
 
     <!-- Create Form -->
@@ -113,13 +171,13 @@
         <div class="flex gap-2">
           <button
             onclick={createDoc}
-            class="flex-1 py-1 bg-[#06b6d4] text-black font-bold text-xs rounded"
+            class="flex-1 py-1 bg-[#06b6d4] text-black font-bold text-xs rounded font-mono cursor-pointer"
           >
             ByteRAG에 생성
           </button>
           <button
             onclick={() => isCreating = false}
-            class="px-2 py-1 bg-[#131315] text-[#869397] text-xs rounded border border-white/10"
+            class="px-2 py-1 bg-[#131315] text-[#869397] text-xs rounded border border-white/10 font-mono cursor-pointer"
           >
             취소
           </button>
@@ -127,36 +185,40 @@
       </div>
     {/if}
 
-    <!-- Docs List Items -->
+    <!-- Filtered Tree Items -->
     <div class="flex-1 overflow-y-auto flex flex-col gap-1.5 pr-1">
-      {#each docs as doc}
-        <div
-          role="button"
-          tabindex="0"
-          onclick={() => selectDoc(doc)}
-          onkeydown={(e) => e.key === 'Enter' && selectDoc(doc)}
-          class="w-full text-left p-2.5 rounded border transition-all cursor-pointer flex items-center justify-between group {activeDoc?.id === doc.id ? 'bg-[#201f22] border-[#06b6d4]/50' : 'bg-[#18181b]/70 border-white/5 hover:border-white/20'}"
-        >
-          <div class="flex flex-col gap-0.5 overflow-hidden">
-            <span class="text-xs font-mono font-medium text-[#e5e1e4] truncate group-hover:text-[#4cd7f6]">
-              {doc.title}
-            </span>
-            <div class="flex items-center gap-1.5 text-[10px] font-mono text-[#869397]">
-              <span class="px-1 py-0.2 rounded bg-[#06b6d4]/10 text-[#4cd7f6] uppercase text-[9px]">{doc.doc_type}</span>
-              <span>ByteRAG DB</span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onclick={(e) => { e.stopPropagation(); deleteDoc(doc); }}
-            title="문서 삭제 (ByteRAG DB에서 영구 제거)"
-            class="px-1.5 py-0.5 bg-white/10 hover:bg-red-500/30 text-red-400 rounded text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+      {#if filteredDocs.length === 0}
+        <div class="m-auto text-xs font-mono text-[#869397] py-6">일치하는 문서가 없습니다.</div>
+      {:else}
+        {#each filteredDocs as doc}
+          <div
+            role="button"
+            tabindex="0"
+            onclick={() => selectDoc(doc)}
+            onkeydown={(e) => e.key === 'Enter' && selectDoc(doc)}
+            class="w-full text-left p-2.5 rounded border transition-all cursor-pointer flex items-center justify-between group {activeDoc?.id === doc.id ? 'bg-[#201f22] border-[#06b6d4]/50' : 'bg-[#18181b]/70 border-white/5 hover:border-white/20'}"
           >
-            ✕
-          </button>
-        </div>
-      {/each}
+            <div class="flex flex-col gap-0.5 overflow-hidden">
+              <span class="text-xs font-mono font-medium text-[#e5e1e4] truncate group-hover:text-[#4cd7f6]">
+                {doc.title}
+              </span>
+              <div class="flex items-center gap-1.5 text-[10px] font-mono text-[#869397]">
+                <span class="px-1 py-0.2 rounded bg-[#06b6d4]/10 text-[#4cd7f6] uppercase text-[9px]">{doc.doc_type}</span>
+                <span>ByteRAG DB</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onclick={(e) => { e.stopPropagation(); deleteDoc(doc); }}
+              title="문서 삭제 (ByteRAG DB에서 영구 제거)"
+              class="px-1.5 py-0.5 bg-white/10 hover:bg-red-500/30 text-red-400 rounded text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              ✕
+            </button>
+          </div>
+        {/each}
+      {/if}
     </div>
   </div>
 
@@ -188,7 +250,7 @@
         class="flex-1 bg-[#09090b] border border-white/10 focus:border-[#06b6d4] rounded p-3.5 text-xs font-mono text-[#e5e1e4] outline-none resize-none leading-relaxed"
       ></textarea>
     {:else}
-      <div class="m-auto text-xs font-mono text-[#869397]">선택된 문서가 없습니다. 좌측에서 문서를 선택하거나 생성하세요.</div>
+      <div class="m-auto text-xs font-mono text-[#869397]">선택된 문서가 없습니다. 좌측 트리에서 문서를 선택하거나 생성하세요.</div>
     {/if}
   </div>
 </div>
