@@ -13,6 +13,7 @@
 
   let isAdding = $state(false);
   let newPathInput = $state('');
+  let copiedPrompt = $state(false);
 
   function handleSelect(e) {
     const val = e.target.value;
@@ -30,11 +31,22 @@
     newPathInput = '';
     isAdding = false;
   }
+
+  async function copyAiPrompt() {
+    try {
+      const prompt = await invokeCommand('generate_ai_prompt_context');
+      await navigator.clipboard.writeText(prompt);
+      copiedPrompt = true;
+      setTimeout(() => copiedPrompt = false, 3000);
+    } catch (e) {
+      alert('프롬프트 복사 실패: ' + e);
+    }
+  }
 </script>
 
 <header class="h-14 px-6 border-b border-white/10 flex items-center justify-between bg-[#131315] select-none gap-4">
   <!-- Target Workspace Selector Dropdown -->
-  <div class="flex items-center gap-2.5 flex-1 max-w-[620px]">
+  <div class="flex items-center gap-2.5 flex-1 max-w-[580px]">
     <div class="text-[11px] font-mono text-[#869397] whitespace-nowrap uppercase tracking-wider">
       WORKSPACE:
     </div>
@@ -103,15 +115,20 @@
   <!-- Action Buttons -->
   <div class="flex items-center gap-2.5">
     <button
-      onclick={onReindex}
-      class="px-3.5 py-1.5 bg-[#06b6d4] hover:bg-[#4cd7f6] text-black font-semibold text-xs rounded transition-all shadow-[0_0_10px_rgba(6,182,212,0.3)] flex items-center gap-1.5 cursor-pointer"
+      onclick={copyAiPrompt}
+      class="px-3 py-1.5 bg-[#8b5cf6]/20 hover:bg-[#8b5cf6]/35 text-[#d0bcff] border border-[#8b5cf6]/40 font-semibold text-xs rounded transition-all flex items-center gap-1.5 cursor-pointer font-mono"
     >
-      <span>⚡</span>
-      <span>즉시 재인덱싱</span>
+      <span>{copiedPrompt ? '✓ 복사완료!' : '🤖 AI 프롬프트 복사'}</span>
+    </button>
+    <button
+      onclick={onReindex}
+      class="px-3.5 py-1.5 bg-[#06b6d4] hover:bg-[#4cd7f6] text-black font-semibold text-xs rounded transition-all shadow-[0_0_10px_rgba(6,182,212,0.3)] flex items-center gap-1.5 cursor-pointer font-mono"
+    >
+      <span>⚡ 즉시 재인덱싱</span>
     </button>
     <button
       onclick={onHideToTray}
-      class="px-3 py-1.5 bg-transparent hover:bg-[#18181b] border border-white/10 hover:border-white/20 text-[#869397] hover:text-[#e5e1e4] text-xs rounded transition-all cursor-pointer"
+      class="px-3 py-1.5 bg-transparent hover:bg-[#18181b] border border-white/10 hover:border-white/20 text-[#869397] hover:text-[#e5e1e4] text-xs rounded transition-all cursor-pointer font-mono"
     >
       트레이로 숨김
     </button>

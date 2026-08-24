@@ -3,7 +3,9 @@
   import Sidebar from './components/Sidebar.svelte';
   import WorkspaceSelector from './components/WorkspaceSelector.svelte';
   import MetricsGrid from './components/MetricsGrid.svelte';
-  import SymbolExplorer from './components/SymbolExplorer.svelte';
+  import PlanProgressCard from './components/PlanProgressCard.svelte';
+  import AiAuditStream from './components/AiAuditStream.svelte';
+  import BlastRadiusViewer from './components/BlastRadiusViewer.svelte';
   import McpToolsTab from './components/McpToolsTab.svelte';
   import SettingsTab from './components/SettingsTab.svelte';
   import { invokeCommand } from './lib/tauri.js';
@@ -19,6 +21,8 @@
   });
   let workspaces = $state([]);
   let activePath = $state('');
+  let planStatus = $state({});
+  let auditLogs = $state([]);
 
   async function loadWorkspaces() {
     try {
@@ -34,13 +38,14 @@
 
   async function syncStatus() {
     try {
-      const res = await invokeCommand('get_index_status');
-      if (res) {
-        status = res;
-        if (res.target_dir && !activePath) {
-          activePath = res.target_dir;
-        }
-      }
+      const [s, plan, logs] = await Promise.all([
+        invokeCommand('get_index_status'),
+        invokeCommand('get_project_plan_status'),
+        invokeCommand('get_ai_audit_logs')
+      ]);
+      if (s) status = s;
+      if (plan) planStatus = plan;
+      if (logs) auditLogs = logs;
     } catch (e) {
       console.warn('syncStatus error:', e);
     }
@@ -104,7 +109,7 @@
   $effect(() => {
     loadWorkspaces();
     syncStatus();
-    const timer = setInterval(syncStatus, 2000);
+    const timer = setInterval(syncStatus, 2500);
     return () => clearInterval(timer);
   });
 </script>
@@ -127,10 +132,19 @@
     />
 
     <!-- Main Dynamic Tab View -->
-    <div class="flex-1 p-6 overflow-y-auto flex flex-col gap-5">
+    <div class="flex-1 p-5 overflow-y-auto flex flex-col gap-4">
       {#if activeTab === 'tab-overview'}
+        <!-- 4 Metrics Cards -->
         <MetricsGrid {status} />
-        <SymbolExplorer {status} />
+
+        <!-- 2 Column Layout: Plan Progress & Live AI Audit -->
+        <div class="grid grid-cols-2 gap-4">
+          <PlanProgressCard {planStatus} />
+          <AiAuditStream {auditLogs} />
+        </div>
+
+        <!-- Blast Radius & GraphRAG Traversal Viewer -->
+        <BlastRadiusViewer />
       {:else if activeTab === 'tab-mcp'}
         <McpToolsTab />
       {:else if activeTab === 'tab-settings'}
