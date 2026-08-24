@@ -62,44 +62,24 @@ pub fn get_project_plan_status(state: State<AppState>) -> Result<ProjectPlanStat
     let mut has_plan = false;
     let mut active_plan_name = String::new();
 
-    // 1. Check current workspace's ByteRAG DB stored plan (Zero Disk Mess per workspace)
-    if let Some(plan_doc) = store.get_doc("plan:implementation_plan") {
-        let parsed = parse_milestones_from_text(&plan_doc.content, &mut plan_title);
-        if !parsed.is_empty() {
-            milestones = parsed;
-            has_plan = true;
-            active_plan_name = "ByteRAG DB (plan:implementation_plan)".into();
-        }
-    }
+    // Strictly check physical plan files within the actual selected workspace directory
+    let plan_candidates = [
+        target_dir.join("implementation_plan.md"),
+        target_dir.join("PLAN.md"),
+        target_dir.join("plan.md"),
+        target_dir.join("docs").join("plan.md"),
+        target_dir.join("docs").join("implementation_plan.md"),
+    ];
 
-    // 2. Check current workspace's physical implementation_plan.md
-    if !has_plan {
-        let plan_path = target_dir.join("implementation_plan.md");
-        if plan_path.exists() {
-            if let Ok(content) = fs::read_to_string(&plan_path) {
+    for candidate in &plan_candidates {
+        if candidate.exists() {
+            if let Ok(content) = fs::read_to_string(candidate) {
                 let parsed = parse_milestones_from_text(&content, &mut plan_title);
                 if !parsed.is_empty() {
                     milestones = parsed;
                     has_plan = true;
-                    active_plan_name = "implementation_plan.md".into();
-                }
-            }
-        }
-    }
-
-    // 3. Check current workspace's PLAN.md or docs/plan.md if exists
-    if !has_plan {
-        let alt_plans = [target_dir.join("PLAN.md"), target_dir.join("docs").join("plan.md")];
-        for alt in &alt_plans {
-            if alt.exists() {
-                if let Ok(content) = fs::read_to_string(alt) {
-                    let parsed = parse_milestones_from_text(&content, &mut plan_title);
-                    if !parsed.is_empty() {
-                        milestones = parsed;
-                        has_plan = true;
-                        active_plan_name = alt.file_name().unwrap_or_default().to_string_lossy().to_string();
-                        break;
-                    }
+                    active_plan_name = candidate.file_name().unwrap_or_default().to_string_lossy().to_string();
+                    break;
                 }
             }
         }
