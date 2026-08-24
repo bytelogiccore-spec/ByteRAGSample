@@ -13,7 +13,7 @@
       </div>
       <div>
         <div class="text-[15px] font-bold text-[#e5e1e4] tracking-tight">CodeOrbit</div>
-        <div class="text-[10px] font-mono text-[#4cd7f6] bg-[#06b6d4]/10 px-1.5 py-0.5 rounded">AI ORCHESTRATOR</div>
+        <div class="text-[10px] font-mono text-[#4cd7f6] bg-[#06b6d4]/10 px-1.5 py-0.5 rounded">BYTERAG ENGINE</div>
       </div>
     </div>
 
@@ -38,7 +38,18 @@
           {#if activeTab === 'tab-docs'}
             <div class="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[#06b6d4] rounded-r shadow-[0_0_8px_#06b6d4]"></div>
           {/if}
-          📚 플랜 & 사양/매뉴얼 관리
+          🗄️ ByteRAG 문서 저장소
+        </button>
+      </li>
+      <li>
+        <button
+          onclick={() => activeTab = 'tab-tests'}
+          class="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-md text-[13px] font-medium transition-all text-left relative {activeTab === 'tab-tests' ? 'bg-[#18181b] text-white border border-white/10' : 'text-[#869397] hover:text-[#e5e1e4] hover:bg-[#18181b]'}"
+        >
+          {#if activeTab === 'tab-tests'}
+            <div class="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[#06b6d4] rounded-r shadow-[0_0_8px_#06b6d4]"></div>
+          {/if}
+          🛡️ 테스트 품질 관제소
         </button>
       </li>
       <li>

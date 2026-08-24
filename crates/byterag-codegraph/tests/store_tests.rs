@@ -1,6 +1,10 @@
 use byterag_codegraph::GraphStore;
 use std::fs;
 
+/// @test_id: TC-STORE-001
+/// @title: GraphStore 인덱싱, 심볼 검색, 서브그래프 탐색, 영향도 분석 및 .brdb 내보내기 전체 수명주기 검증
+/// @purpose: 임시 소스코드 생성부터 증분 인덱싱, CsrGraph BFS 서브그래프 쿼리, Blast Radius 파급력 계산, .brdb 압축 파일 생성까지 엔드투엔드 파이프라인을 검증한다.
+/// @expected: 2개 파일 인덱싱 완료, CoreEngine 심볼 검색 성공, Subgraph 노드 추출, Blast Radius >= 1, export.brdb 파일 생성 성공
 #[test]
 fn test_store_lifecycle_and_search() {
     let temp_dir = std::env::temp_dir().join(format!("byterag_test_{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));

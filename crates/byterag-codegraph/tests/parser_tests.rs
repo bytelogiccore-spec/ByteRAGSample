@@ -1,6 +1,10 @@
 use byterag_codegraph::parser::parse_file;
 use byterag_codegraph::types::{EdgeType, NodeType};
 
+/// @test_id: TC-PARSER-001
+/// @title: Rust 소스코드 AST 심볼 및 상속 관계 파싱 검증
+/// @purpose: Rust 파일에서 struct, trait, fn 선언 및 implements 관계를 정확히 추출하는지 검증한다.
+/// @expected: UserSession(struct), Authenticatable(trait), login(fn) 노드 및 Implements 엣지 검출
 #[test]
 fn test_parse_rust_code() {
     let code = r#"
@@ -39,6 +43,10 @@ fn test_parse_rust_code() {
     assert!(has_impl_edge, "Must detect Implements edge");
 }
 
+/// @test_id: TC-PARSER-002
+/// @title: C/C++ 헤더 인클루드 및 클래스 상속 파싱 검증
+/// @purpose: C++ 소스코드에서 #include 지시자 및 클래스 extends 상속 관계를 추출하는지 검증한다.
+/// @expected: VulkanRenderer(class) 노드 및 Includes, Extends 엣지 검출
 #[test]
 fn test_parse_cpp_code() {
     let code = r#"
@@ -62,6 +70,10 @@ fn test_parse_cpp_code() {
     assert!(has_extends, "Must parse inheritance extends edge");
 }
 
+/// @test_id: TC-PARSER-003
+/// @title: C# 인터페이스, 클래스, Using 네임스페이스 파싱 검증
+/// @purpose: C# 소스에서 interface, class 선언 및 using 참조 관계를 추출하는지 검증한다.
+/// @expected: IRepository(interface), SqlRepository(class) 노드 및 Using, Implements 엣지 검출
 #[test]
 fn test_parse_csharp_code() {
     let code = r#"
@@ -87,6 +99,10 @@ fn test_parse_csharp_code() {
     assert!(has_impl, "Must parse implements edge");
 }
 
+/// @test_id: TC-PARSER-004
+/// @title: TypeScript / JavaScript Import 및 클래스 구현 파싱 검증
+/// @purpose: TS/JS 파일에서 import 모듈, interface, extends/implements 다중 관계를 추출하는지 검증한다.
+/// @expected: UserConfig(interface), ApiClient(class) 노드 및 Imports, Extends, Implements 엣지 검출
 #[test]
 fn test_parse_typescript_code() {
     let code = r#"
@@ -115,6 +131,10 @@ fn test_parse_typescript_code() {
     assert!(has_impl, "Must parse implements edge");
 }
 
+/// @test_id: TC-PARSER-005
+/// @title: Python 모듈 Import, 클래스 및 함수 파싱 검증
+/// @purpose: Python 소스에서 from ... import 구문, class, def 함수 정의를 추출하는지 검증한다.
+/// @expected: ModelRunner(class), run_model(fn) 노드 및 Imports 엣지 검출
 #[test]
 fn test_parse_python_code() {
     let code = r#"

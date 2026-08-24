@@ -21,6 +21,34 @@ pub(crate) struct FileMetaStored {
     pub edge_keys: Vec<String>,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ByteRagDocStored {
+    pub id: String,
+    pub title: String,
+    pub doc_type: String, // "plan" | "spec" | "manual" | "general"
+    pub content: String,
+    pub updated_at: u64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ByteRagTestResultStored {
+    pub run_at: u64,
+    pub total_tests: usize,
+    pub passed_tests: usize,
+    pub duration_secs: f64,
+    pub test_cases: Vec<ByteRagTestCaseItem>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ByteRagTestCaseItem {
+    pub test_id: String,
+    pub name: String,
+    pub title: String,
+    pub purpose: String,
+    pub expected: String,
+    pub passed: bool,
+}
+
 pub struct GraphStore {
     pub(crate) target_dir: PathBuf,
     pub(crate) db: Arc<Database>,
@@ -129,5 +157,62 @@ impl GraphStore {
             .into_iter()
             .filter_map(|(_k, v)| serde_json::from_slice::<SampleNode>(&v).ok())
             .collect()
+    }
+
+    // --- ByteRAG Docs Persistence API ---
+
+    pub fn list_docs(&self) -> Vec<ByteRagDocStored> {
+        let Ok(entries) = self.db.scan("docs") else {
+            return Vec::new();
+        };
+        entries
+            .into_iter()
+            .filter_map(|(_k, v)| serde_json::from_slice::<ByteRagDocStored>(&v).ok())
+            .collect()
+    }
+
+    pub fn get_doc(&self, id: &str) -> Option<ByteRagDocStored> {
+        let val = self.db.get("docs", id.as_bytes()).ok()??;
+        serde_json::from_slice(&val).ok()
+    }
+
+    pub fn save_doc(&self, doc: &ByteRagDocStored) -> Result<(), String> {
+        let bytes = serde_json::to_vec(doc).map_err(|e| e.to_string())?;
+        self.db.insert("docs", doc.id.as_bytes(), &bytes).map_err(|e| e.to_string())?;
+        let _ = self.db.flush();
+        self.mark_dirty();
+        Ok(())
+    }
+
+    pub fn delete_doc(&self, id: &str) -> Result<(), String> {
+        self.db.delete("docs", id.as_bytes()).map_err(|e| e.to_string())?;
+        let _ = self.db.flush();
+        self.mark_dirty();
+        Ok(())
+    }
+
+    // --- ByteRAG Verified Test History API (Successful cases only) ---
+
+    pub fn save_test_result(&self, result: &ByteRagTestResultStored) -> Result<(), String> {
+        // Only save when tests have passed
+        if result.passed_tests == 0 {
+            return Ok(());
+        }
+        let key = format!("run:{}", result.run_at);
+        let bytes = serde_json::to_vec(result).map_err(|e| e.to_string())?;
+        self.db.insert("test_history", key.as_bytes(), &bytes).map_err(|e| e.to_string())?;
+        let _ = self.db.flush();
+        self.mark_dirty();
+        Ok(())
+    }
+
+    pub fn get_latest_test_result(&self) -> Option<ByteRagTestResultStored> {
+        let Ok(entries) = self.db.scan("test_history") else {
+            return None;
+        };
+        entries
+            .into_iter()
+            .filter_map(|(_k, v)| serde_json::from_slice::<ByteRagTestResultStored>(&v).ok())
+            .max_by_key(|r| r.run_at)
     }
 }

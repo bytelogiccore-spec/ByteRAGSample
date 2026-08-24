@@ -3,39 +3,36 @@
 
   let docs = $state([]);
   let activeDoc = $state(null);
-  let docContent = $state('');
   let isSaving = $state(false);
   let isCreating = $state(false);
-  let newDocName = $state('');
+  let newDocTitle = $state('');
   let newDocType = $state('plan');
+  let saveSuccessMsg = $state('');
 
   async function loadDocs() {
     try {
       const res = await invokeCommand('list_project_docs');
       docs = res || [];
       if (!activeDoc && docs.length > 0) {
-        selectDoc(docs[0]);
+        activeDoc = { ...docs[0] };
       }
     } catch (e) {
       console.warn('loadDocs error:', e);
     }
   }
 
-  async function selectDoc(doc) {
-    activeDoc = doc;
-    try {
-      const content = await invokeCommand('read_doc_content', { path: doc.path });
-      docContent = content || '';
-    } catch (e) {
-      alert('문서 읽기 실패: ' + e);
-    }
+  function selectDoc(doc) {
+    activeDoc = { ...doc };
+    saveSuccessMsg = '';
   }
 
   async function saveDoc() {
     if (!activeDoc) return;
     isSaving = true;
     try {
-      await invokeCommand('save_doc_content', { path: activeDoc.path, content: docContent });
+      await invokeCommand('save_doc_to_byterag', { doc: activeDoc });
+      saveSuccessMsg = '✓ ByteRAG DB에 영속 저장되었습니다.';
+      setTimeout(() => saveSuccessMsg = '', 3000);
       await loadDocs();
     } catch (e) {
       alert('문서 저장 실패: ' + e);
@@ -45,11 +42,10 @@
   }
 
   async function deleteDoc(doc) {
-    if (!confirm(`정말 '${doc.name}' 문서를 삭제(정리)하시겠습니까?`)) return;
+    if (!confirm(`정말 '${doc.title}' 문서를 ByteRAG에서 삭제하시겠습니까?`)) return;
     try {
-      await invokeCommand('delete_doc_file', { path: doc.path });
+      await invokeCommand('delete_doc_from_byterag', { id: doc.id });
       activeDoc = null;
-      docContent = '';
       await loadDocs();
     } catch (e) {
       alert('문서 삭제 실패: ' + e);
@@ -57,25 +53,18 @@
   }
 
   async function createDoc() {
-    const name = newDocName.trim();
-    if (!name) return;
+    const title = newDocTitle.trim();
+    if (!title) return;
     try {
-      const path = await invokeCommand('create_doc_file', { name, docType: newDocType, doc_type: newDocType });
-      newDocName = '';
+      const newDoc = await invokeCommand('create_doc_in_byterag', { title, docType: newDocType, doc_type: newDocType });
+      newDocTitle = '';
       isCreating = false;
       await loadDocs();
-      const created = docs.find(d => d.path === path) || { name, path, doc_type: newDocType };
-      selectDoc(created);
+      if (newDoc) {
+        selectDoc(newDoc);
+      }
     } catch (e) {
       alert('문서 생성 실패: ' + e);
-    }
-  }
-
-  async function openInEditor(path) {
-    try {
-      await invokeCommand('open_in_ide', { filePath: path, file_path: path, line: 1 });
-    } catch (e) {
-      alert('에디터 열기 실패: ' + e);
     }
   }
 
@@ -85,12 +74,15 @@
 </script>
 
 <div class="flex-1 flex gap-4 overflow-hidden select-none">
-  <!-- Left: Docs List -->
+  <!-- Left: Docs List stored in ByteRAG -->
   <div class="w-72 bg-[#131315] border border-white/10 rounded-md p-4 flex flex-col gap-3">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <span class="text-sm">📚</span>
-        <span class="text-xs font-bold text-[#e5e1e4] tracking-tight">프로젝트 문서 관리</span>
+        <span class="text-sm">🗄️</span>
+        <div>
+          <div class="text-xs font-bold text-[#e5e1e4] tracking-tight">ByteRAG 문서 저장소</div>
+          <div class="text-[9px] font-mono text-[#06b6d4]">Zero Disk Mess (Pure DB)</div>
+        </div>
       </div>
       <button
         onclick={() => isCreating = !isCreating}
@@ -105,8 +97,8 @@
       <div class="p-2.5 bg-[#18181b] border border-[#06b6d4]/40 rounded flex flex-col gap-2">
         <input
           type="text"
-          bind:value={newDocName}
-          placeholder="문서명 (예: 03_system_spec)"
+          bind:value={newDocTitle}
+          placeholder="문서 제목 (예: 결제 모듈 사양서)"
           class="bg-[#131315] border border-white/10 rounded px-2.5 py-1 text-xs font-mono text-[#e5e1e4] outline-none"
         />
         <select
@@ -116,14 +108,14 @@
           <option value="plan">📋 작업 계획서 (Plan)</option>
           <option value="spec">📐 개발 사양서 (Spec)</option>
           <option value="manual">📖 기능 매뉴얼 (Manual)</option>
-          <option value="general">📝 일반 마크다운</option>
+          <option value="general">📝 일반 지식 문서</option>
         </select>
         <div class="flex gap-2">
           <button
             onclick={createDoc}
             class="flex-1 py-1 bg-[#06b6d4] text-black font-bold text-xs rounded"
           >
-            생성
+            ByteRAG에 생성
           </button>
           <button
             onclick={() => isCreating = false}
@@ -139,69 +131,61 @@
     <div class="flex-1 overflow-y-auto flex flex-col gap-1.5 pr-1">
       {#each docs as doc}
         <div
+          role="button"
+          tabindex="0"
           onclick={() => selectDoc(doc)}
-          class="p-2.5 rounded border transition-all cursor-pointer flex items-center justify-between group {activeDoc?.path === doc.path ? 'bg-[#201f22] border-[#06b6d4]/50' : 'bg-[#18181b]/70 border-white/5 hover:border-white/20'}"
+          onkeydown={(e) => e.key === 'Enter' && selectDoc(doc)}
+          class="w-full text-left p-2.5 rounded border transition-all cursor-pointer flex items-center justify-between group {activeDoc?.id === doc.id ? 'bg-[#201f22] border-[#06b6d4]/50' : 'bg-[#18181b]/70 border-white/5 hover:border-white/20'}"
         >
           <div class="flex flex-col gap-0.5 overflow-hidden">
             <span class="text-xs font-mono font-medium text-[#e5e1e4] truncate group-hover:text-[#4cd7f6]">
-              {doc.name}
+              {doc.title}
             </span>
             <div class="flex items-center gap-1.5 text-[10px] font-mono text-[#869397]">
-              <span class="px-1 py-0.2 rounded bg-white/5 uppercase text-[9px]">{doc.doc_type}</span>
-              <span>{doc.modified_str}</span>
+              <span class="px-1 py-0.2 rounded bg-[#06b6d4]/10 text-[#4cd7f6] uppercase text-[9px]">{doc.doc_type}</span>
+              <span>ByteRAG DB</span>
             </div>
           </div>
 
-          <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onclick={(e) => { e.stopPropagation(); openInEditor(doc.path); }}
-              title="Cursor / IDE에서 열기"
-              class="px-1.5 py-0.5 bg-white/10 hover:bg-[#8b5cf6]/30 text-[#d0bcff] rounded text-[10px]"
-            >
-              IDE
-            </button>
-            <button
-              onclick={(e) => { e.stopPropagation(); deleteDoc(doc); }}
-              title="문서 삭제 (완료 후 정리)"
-              class="px-1.5 py-0.5 bg-white/10 hover:bg-red-500/30 text-red-400 rounded text-[10px]"
-            >
-              ✕
-            </button>
-          </div>
+          <button
+            type="button"
+            onclick={(e) => { e.stopPropagation(); deleteDoc(doc); }}
+            title="문서 삭제 (ByteRAG DB에서 영구 제거)"
+            class="px-1.5 py-0.5 bg-white/10 hover:bg-red-500/30 text-red-400 rounded text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            ✕
+          </button>
         </div>
       {/each}
     </div>
   </div>
 
-  <!-- Right: Markdown Editor & Viewer -->
+  <!-- Right: In-App ByteRAG Editor -->
   <div class="flex-1 bg-[#131315] border border-white/10 rounded-md p-4 flex flex-col gap-3 overflow-hidden">
     {#if activeDoc}
       <div class="flex items-center justify-between border-b border-white/10 pb-3">
         <div class="flex items-center gap-2.5">
-          <span class="text-sm font-mono font-bold text-[#4cd7f6]">{activeDoc.name}</span>
-          <span class="text-[11px] font-mono text-[#869397] truncate max-w-[320px]">{activeDoc.path}</span>
+          <span class="text-sm font-mono font-bold text-[#4cd7f6]">{activeDoc.title}</span>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-[#869397]">Key: {activeDoc.id}</span>
+          {#if saveSuccessMsg}
+            <span class="text-xs font-mono text-emerald-400 animate-fade-in">{saveSuccessMsg}</span>
+          {/if}
         </div>
         <div class="flex items-center gap-2">
-          <button
-            onclick={() => openInEditor(activeDoc.path)}
-            class="px-3 py-1 bg-[#8b5cf6]/20 hover:bg-[#8b5cf6]/35 text-[#d0bcff] border border-[#8b5cf6]/40 text-xs font-mono rounded transition-all cursor-pointer"
-          >
-            ⚡ Cursor에서 열기
-          </button>
           <button
             onclick={saveDoc}
             disabled={isSaving}
             class="px-3.5 py-1 bg-[#06b6d4] hover:bg-[#4cd7f6] text-black font-semibold text-xs font-mono rounded transition-all cursor-pointer shadow-[0_0_10px_rgba(6,182,212,0.3)]"
           >
-            {isSaving ? '저장 중...' : '💾 저장하기'}
+            {isSaving ? '저장 중...' : '💾 ByteRAG DB에 저장'}
           </button>
         </div>
       </div>
 
       <textarea
-        bind:value={docContent}
-        placeholder="마크다운 문서 내용을 작성하세요..."
-        class="flex-1 bg-[#09090b] border border-white/10 focus:border-[#06b6d4] rounded p-3 text-xs font-mono text-[#e5e1e4] outline-none resize-none leading-relaxed"
+        bind:value={activeDoc.content}
+        placeholder="ByteRAG에 저장될 마크다운 문서 내용을 작성하세요..."
+        class="flex-1 bg-[#09090b] border border-white/10 focus:border-[#06b6d4] rounded p-3.5 text-xs font-mono text-[#e5e1e4] outline-none resize-none leading-relaxed"
       ></textarea>
     {:else}
       <div class="m-auto text-xs font-mono text-[#869397]">선택된 문서가 없습니다. 좌측에서 문서를 선택하거나 생성하세요.</div>
