@@ -1,5 +1,6 @@
 <script>
   import { invokeCommand } from '../lib/tauri.js';
+  import { t } from '../lib/i18n.svelte.js';
 
   let docs = $state([]);
   let activeDoc = $state(null);
@@ -33,7 +34,7 @@
     isSaving = true;
     try {
       await invokeCommand('save_doc_to_byterag', { doc: activeDoc });
-      saveSuccessMsg = '✓ ByteRAG DB에 영속 저장되었습니다.';
+      saveSuccessMsg = t('docs_saved_msg');
       setTimeout(() => saveSuccessMsg = '', 3000);
       await loadDocs();
     } catch (e) {
@@ -44,7 +45,7 @@
   }
 
   async function deleteDoc(doc) {
-    if (!confirm(`정말 '${doc.title}' 문서를 ByteRAG에서 삭제하시겠습니까?`)) return;
+    if (!confirm(`'${doc.title}' 문서를 ByteRAG에서 삭제하시겠습니까?`)) return;
     try {
       await invokeCommand('delete_doc_from_byterag', { id: doc.id });
       activeDoc = null;
@@ -70,14 +71,13 @@
     }
   }
 
-  // Filtered and Category Foldering
-  let categories = [
-    { key: 'ALL', label: '전체 문서', icon: '📂' },
-    { key: 'plan', label: '작업 계획서 (Plans)', icon: '📋' },
-    { key: 'spec', label: '요구 사양서 (Specs)', icon: '📐' },
-    { key: 'manual', label: '기능 매뉴얼 (Manuals)', icon: '📖' },
-    { key: 'general', label: '일반 지식 (General)', icon: '📝' },
-  ];
+  let categories = $derived([
+    { key: 'ALL', label: t('docs_cat_all'), icon: '📂' },
+    { key: 'plan', label: t('docs_cat_plan'), icon: '📋' },
+    { key: 'spec', label: t('docs_cat_spec'), icon: '📐' },
+    { key: 'manual', label: t('docs_cat_manual'), icon: '📖' },
+    { key: 'general', label: t('docs_cat_general'), icon: '📝' },
+  ]);
 
   let filteredDocs = $derived.by(() => {
     let list = docs;
@@ -106,15 +106,15 @@
       <div class="flex items-center gap-2">
         <span class="text-sm">🗄️</span>
         <div>
-          <div class="text-xs font-bold text-[#e5e1e4] tracking-tight">ByteRAG 문서 트리</div>
-          <div class="text-[9px] font-mono text-[#06b6d4]">Zero Disk Mess (Pure DB)</div>
+          <div class="text-xs font-bold text-[#e5e1e4] tracking-tight">{t('docs_tree_title')}</div>
+          <div class="text-[9px] font-mono text-[#06b6d4]">{t('docs_tree_sub')}</div>
         </div>
       </div>
       <button
         onclick={() => isCreating = !isCreating}
         class="px-2 py-1 bg-[#06b6d4]/15 hover:bg-[#06b6d4]/30 text-[#4cd7f6] border border-[#06b6d4]/30 rounded text-[11px] font-mono transition-all cursor-pointer"
       >
-        + 새 문서
+        {t('docs_new_btn')}
       </button>
     </div>
 
@@ -123,7 +123,7 @@
       <input
         type="text"
         bind:value={searchQuery}
-        placeholder="문서 제목, 본문 키워드 검색..."
+        placeholder={t('docs_search_ph')}
         class="w-full bg-[#18181b] border border-white/10 focus:border-[#06b6d4] rounded px-3 py-1.5 text-xs font-mono text-[#e5e1e4] outline-none transition-all placeholder:text-[#869397]"
       />
       {#if searchQuery}
@@ -145,7 +145,7 @@
           class="px-2 py-1 rounded text-[10px] font-mono transition-all flex items-center gap-1 cursor-pointer {selectedCategory === cat.key ? 'bg-[#06b6d4]/20 text-[#4cd7f6] border border-[#06b6d4]/40 font-bold' : 'bg-[#18181b] text-[#869397] hover:text-[#e5e1e4] border border-white/5'}"
         >
           <span>{cat.icon}</span>
-          <span>{cat.label.split(' ')[0]}</span>
+          <span>{cat.label}</span>
         </button>
       {/each}
     </div>
@@ -156,30 +156,30 @@
         <input
           type="text"
           bind:value={newDocTitle}
-          placeholder="문서 제목 (예: 결제 모듈 사양서)"
+          placeholder="Document title (e.g. Auth Architecture Spec)"
           class="bg-[#131315] border border-white/10 rounded px-2.5 py-1 text-xs font-mono text-[#e5e1e4] outline-none"
         />
         <select
           bind:value={newDocType}
           class="bg-[#131315] border border-white/10 rounded px-2 py-1 text-[11px] font-mono text-[#e5e1e4] outline-none"
         >
-          <option value="plan">📋 작업 계획서 (Plan)</option>
-          <option value="spec">📐 개발 사양서 (Spec)</option>
-          <option value="manual">📖 기능 매뉴얼 (Manual)</option>
-          <option value="general">📝 일반 지식 문서</option>
+          <option value="plan">📋 {t('docs_cat_plan')}</option>
+          <option value="spec">📐 {t('docs_cat_spec')}</option>
+          <option value="manual">📖 {t('docs_cat_manual')}</option>
+          <option value="general">📝 {t('docs_cat_general')}</option>
         </select>
         <div class="flex gap-2">
           <button
             onclick={createDoc}
             class="flex-1 py-1 bg-[#06b6d4] text-black font-bold text-xs rounded font-mono cursor-pointer"
           >
-            ByteRAG에 생성
+            Create in ByteRAG
           </button>
           <button
             onclick={() => isCreating = false}
             class="px-2 py-1 bg-[#131315] text-[#869397] text-xs rounded border border-white/10 font-mono cursor-pointer"
           >
-            취소
+            Cancel
           </button>
         </div>
       </div>
@@ -188,7 +188,7 @@
     <!-- Filtered Tree Items -->
     <div class="flex-1 overflow-y-auto flex flex-col gap-1.5 pr-1">
       {#if filteredDocs.length === 0}
-        <div class="m-auto text-xs font-mono text-[#869397] py-6">일치하는 문서가 없습니다.</div>
+        <div class="m-auto text-xs font-mono text-[#869397] py-6">No matching documents.</div>
       {:else}
         {#each filteredDocs as doc}
           <div
@@ -211,7 +211,7 @@
             <button
               type="button"
               onclick={(e) => { e.stopPropagation(); deleteDoc(doc); }}
-              title="문서 삭제 (ByteRAG DB에서 영구 제거)"
+              title="Delete Document from ByteRAG DB"
               class="px-1.5 py-0.5 bg-white/10 hover:bg-red-500/30 text-red-400 rounded text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
             >
               ✕
@@ -239,18 +239,18 @@
             disabled={isSaving}
             class="px-3.5 py-1 bg-[#06b6d4] hover:bg-[#4cd7f6] text-black font-semibold text-xs font-mono rounded transition-all cursor-pointer shadow-[0_0_10px_rgba(6,182,212,0.3)]"
           >
-            {isSaving ? '저장 중...' : '💾 ByteRAG DB에 저장'}
+            {isSaving ? t('docs_saving') : t('docs_save_btn')}
           </button>
         </div>
       </div>
 
       <textarea
         bind:value={activeDoc.content}
-        placeholder="ByteRAG에 저장될 마크다운 문서 내용을 작성하세요..."
+        placeholder="Write Markdown document content to be persisted directly inside ByteRAG DB..."
         class="flex-1 bg-[#09090b] border border-white/10 focus:border-[#06b6d4] rounded p-3.5 text-xs font-mono text-[#e5e1e4] outline-none resize-none leading-relaxed"
       ></textarea>
     {:else}
-      <div class="m-auto text-xs font-mono text-[#869397]">선택된 문서가 없습니다. 좌측 트리에서 문서를 선택하거나 생성하세요.</div>
+      <div class="m-auto text-xs font-mono text-[#869397]">{t('docs_no_selected')}</div>
     {/if}
   </div>
 </div>

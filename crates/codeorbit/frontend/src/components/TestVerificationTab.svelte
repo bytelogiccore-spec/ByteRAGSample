@@ -1,5 +1,6 @@
 <script>
   import { invokeCommand } from '../lib/tauri.js';
+  import { t } from '../lib/i18n.svelte.js';
 
   let report = $state(null);
   let isLoading = $state(false);
@@ -18,7 +19,7 @@
   }
 
   let runTimeString = $derived.by(() => {
-    if (!report?.run_at) return '최근';
+    if (!report?.run_at) return 'Recent';
     const d = new Date(report.run_at * 1000);
     return d.toLocaleTimeString();
   });
@@ -48,9 +49,9 @@
         🛡️
       </div>
       <div>
-        <div class="text-sm font-bold text-[#e5e1e4] tracking-tight">ByteRAG 검증된 테스트 품질 관제소</div>
+        <div class="text-sm font-bold text-[#e5e1e4] tracking-tight">{t('test_title')}</div>
         <div class="text-xs font-mono text-[#869397] mt-0.5">
-          표준 규격 주석(@test_id, @purpose) 파싱 기반 · 실패(Fail) 케이스 자동 배제 및 순수 검증 이력만 영속화
+          {t('test_sub')}
         </div>
       </div>
     </div>
@@ -61,14 +62,14 @@
           {report?.passed_tests || 0} / {report?.total_tests || 0} PASS (100%)
         </span>
         <span class="text-[10px] font-mono text-[#869397]">
-          실행: {runTimeString} ({report?.duration_secs || 0.18}s)
+          Run: {runTimeString} ({report?.duration_secs || 0.18}s)
         </span>
       </div>
       <button
         onclick={loadTestReport}
         class="px-3.5 py-1.5 bg-[#06b6d4] hover:bg-[#4cd7f6] text-black font-semibold text-xs font-mono rounded transition-all cursor-pointer shadow-[0_0_10px_rgba(6,182,212,0.3)]"
       >
-        {isLoading ? '조회 중...' : '🔄 검증 결과 새로고침'}
+        {isLoading ? t('test_refreshing') : t('test_refresh')}
       </button>
     </div>
   </div>
@@ -78,7 +79,7 @@
     <input
       type="text"
       bind:value={searchQuery}
-      placeholder="테스트 ID, 기능명, 검증 목적, 기대 결과 키워드 실시간 검색 (예: TC-PARSER, CsrGraph, 상속)..."
+      placeholder={t('test_search_ph')}
       class="w-full bg-[#131315] border border-white/10 focus:border-[#06b6d4] rounded px-3.5 py-2 text-xs font-mono text-[#e5e1e4] outline-none transition-all placeholder:text-[#869397]"
     />
     {#if searchQuery}
@@ -94,13 +95,13 @@
   <!-- Verified Test Cases List -->
   <div class="flex-1 bg-[#131315] border border-white/10 rounded-md p-4 flex flex-col gap-3 overflow-hidden">
     <div class="flex justify-between items-center text-xs font-mono text-[#869397] pb-2 border-b border-white/5">
-      <span>검증된 테스트 케이스 ({filteredTestCases.length}개 항목)</span>
-      <span class="text-emerald-400">● ALL TESTS GREEN</span>
+      <span>{t('test_suite_header')} ({filteredTestCases.length} items)</span>
+      <span class="text-emerald-400">{t('test_all_green')}</span>
     </div>
 
     <div class="flex-1 overflow-y-auto flex flex-col gap-2 pr-1">
       {#if filteredTestCases.length === 0}
-        <div class="m-auto text-xs font-mono text-[#869397] py-8">일치하는 테스트 케이스가 없습니다.</div>
+        <div class="m-auto text-xs font-mono text-[#869397] py-8">No matching test cases found.</div>
       {:else}
         {#each filteredTestCases as tc}
           <div class="p-3 bg-[#18181b] border border-white/5 hover:border-emerald-500/30 rounded flex flex-col gap-1.5 transition-all">
@@ -115,11 +116,11 @@
             </div>
 
             <div class="text-[11px] text-[#869397] font-mono mt-0.5">
-              🎯 <span class="text-[#e5e1e4]">목적:</span> {tc.purpose}
+              🎯 <span class="text-[#e5e1e4]">{t('test_purpose_label')}:</span> {tc.purpose}
             </div>
 
             <div class="text-[11px] text-[#869397] font-mono">
-              📋 <span class="text-[#4cd7f6]">기대 결과:</span> {tc.expected}
+              📋 <span class="text-[#4cd7f6]">{t('test_expected_label')}:</span> {tc.expected}
             </div>
           </div>
         {/each}

@@ -1,34 +1,114 @@
-# ByteRAGSample — ByteRAG 사용법 데모 워크스페이스
+# CodeOrbit - Embedded GraphRAG & AI Mission Control
 
-[ByteRAG](https://crates.io/crates/byterag-core) (`byterag-core` **0.3.0**, crates.io)의 주요 사용 패턴을 **샘플별로 분리**한 저장소입니다.  
-각 샘플은 한 가지 주제만 다루며, 실행 가능한 Rust 바이너리와 한국어 README를 제공합니다.
+> **Ultra-Fast AST Knowledge Graph & Mission Control Center for AI-Assisted Development**  
+> Powered by **ByteRAG 5-Tier Embedded Storage Engine** (`.brdb`).
 
-## 어떤 샘플을 볼까?
+---
 
-| 샘플 | 패키지 | 한 줄 요약 | 실행 |
-| --- | --- | --- | --- |
-| [demos/01-kv-crud](demos/01-kv-crud) | `demo-kv-crud` | 임베디드 KV: open / insert / get / delete / flush | `cargo run -p demo-kv-crud` |
-| [demos/02-sql-query](demos/02-sql-query) | `demo-sql-query` | `execute_sql` + Query Builder | `cargo run -p demo-sql-query` |
-| [demos/03-graph-csr](demos/03-graph-csr) | `demo-graph-csr` | `CsrGraph` 멀티홉 (파서/MCP 없음) | `cargo run -p demo-graph-csr` |
-| [demos/04-brdb-portable](demos/04-brdb-portable) | `demo-brdb-portable` | `.brdb` export / import 왕복 | `cargo run -p demo-brdb-portable` |
-| [crates/byterag-codegraph](crates/byterag-codegraph) | `byterag-codegraph` | 코드 의존성 그래프 **MCP** 서버 | `cargo build -p byterag-codegraph` |
+## 🌟 Overview
 
-추천 학습 순서: **KV → SQL → Graph → brdb → codegraph MCP**.
+**CodeOrbit** is a high-performance, developer-centric desktop dashboard and MCP (Model Context Protocol) server designed to supercharge AI coding assistants like **Cursor, Antigravity, and Claude Desktop**.
 
-## 빌드
+Instead of treating LLM coding as a black box with messy disk files, CodeOrbit provides:
+1. **Real-time AI Activity Audit Stream**: Monitor MCP tool calls and affected code symbols live.
+2. **Zero-Disk-Mess Document Management**: Store project plans, architecture specs, and manuals directly inside the **ByteRAG 5T Database** with zero clutter in your git repo.
+3. **Verified Test Quality Center**: Automatically parse standardized doc-comments (`@test_id`, `@purpose`) and keep a 100% clean record of verified passing suites (failing tests are auto-discarded from history).
+4. **Instant Blast Radius & Multi-Hop Traversal**: Calculate dependency impact chains before modifying any code.
+5. **Portable `.brdb` Single-File Archive**: Pack AST graphs, documentation, and verified test history into a single binary archive.
 
-```bash
-cargo build --workspace
-# 릴리스
-cargo build --workspace --release
+---
+
+## 📐 Architecture & 5-Tier Storage
+
+```
+               [ 5 Supported Languages: Rust, C++, C#, TypeScript, Python ]
+                                          │
+                                          ▼
+                            [ tree-sitter AST Parsers ]
+                                          │
+                                          ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                          ByteRAG 5-Tier Embedded Core                           │
+├─────────────────┬─────────────────┬──────────────────┬──────────────────────────┤
+│ L0: WAL Buffer  │ L1: In-Mem WOS  │ L2: Arrow Scan   │ L3: CSR Graph Traversal  │
+│ (Microsecond)   │ (Append-Only)   │ (Zero-Copy FTS)  │ (Multi-Hop BFS Explorer) │
+└─────────────────┴─────────────────┴──────────────────┴──────────────────────────┘
+                                          │
+                    ┌─────────────────────┴─────────────────────┐
+                    ▼                                           ▼
+      [ MCP Server stdio Protocol ]              [ Tauri Desktop GUI & i18n ]
+      (13 GraphRAG Tools for AI)                 (Svelte 5 + Tailwind Dashboard)
 ```
 
-MCP 바이너리 이름(Cursor `mcp.json` 호환): `target/debug/byterag_sample.exe` (Windows) / `target/debug/byterag_sample`.
+---
 
-## 다음에 추가 가능
+## 🚀 Key Features
 
-Vector 검색, Encryption/WAL, 언어 바인딩(Python/Node/C#)은 의도적으로 제외했습니다. 필요하면 동일 패턴으로 `demos/`에 추가하면 됩니다.
+### 1. 🤖 AI Live Audit & Plan Progress Tracker
+- **Real-Time Feed**: Track `byterag_query_graph`, `byterag_blast_radius`, and `byterag_find_path` tool invocations in milliseconds.
+- **Dynamic Milestone Progress**: Synchronizes active implementation milestones directly from ByteRAG DB.
 
-## 엔진
+### 2. 🗄️ Zero Disk Mess In-DB Document Store
+- Write and edit Markdown plans, specs, and manuals directly in the app.
+- Zero leftover `.md` files cluttering your project tree — persisted safely into ByteRAG's `docs` table.
+- Categorized by **Plans (`📋`)**, **Specs (`📐`)**, **Manuals (`📖`)**, and **General (`📝`)** with real-time full-text search.
 
-공통 의존성: [`byterag-core = "0.3.0"`](https://crates.io/crates/byterag-core) ([workspace.dependencies](Cargo.toml)).
+### 3. 🛡️ Verified Test Quality Center
+- Standardized Rust test metadata:
+  ```rust
+  /// @test_id: TC-STORE-001
+  /// @title: GraphStore Full Lifecycle & Blast Radius
+  /// @purpose: Verify indexing, BFS query, and .brdb packaging
+  /// @expected: 100% Passing test suite snapshot
+  #[test]
+  fn test_store_lifecycle_and_search() { ... }
+  ```
+- Displays verified passing tests in clean, human-readable Korean/English reports.
+
+### 4. 🌐 Global Ready with Full i18n
+- Seamless one-click toggle between **English (`EN`)** and **Korean (`KO`)**.
+- Remembers user language preference via persistent storage.
+
+---
+
+## 🛠️ Quick Start
+
+### Prerequisites
+- [Rust](https://www.rust-lang.org/) (Edition 2021)
+- [Node.js](https://nodejs.org/) & `npm`
+
+### 1. Build Frontend & Desktop App
+```bash
+# Build Svelte 5 static frontend
+cd crates/codeorbit/frontend
+npm install
+npm run build
+
+# Build Tauri desktop executable
+cd ../../..
+cargo build -p codeorbit
+```
+
+### 2. Launch CodeOrbit
+```powershell
+& ".\target\debug\codeorbit.exe"
+```
+
+### 3. Register with Cursor / Claude Desktop (MCP Config)
+Add the following to your `mcpServers` configuration (`mcp.json` or `claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "codeorbit": {
+      "command": "d:\\ByteLogicCore\\ByteRAGSample\\target\\debug\\codeorbit.exe",
+      "args": []
+    }
+  }
+}
+```
+
+---
+
+## 📦 License
+Licensed under the Apache-2.0 License.

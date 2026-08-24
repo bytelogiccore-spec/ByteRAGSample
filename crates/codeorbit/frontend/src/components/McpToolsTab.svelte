@@ -1,53 +1,45 @@
-<div class="bg-[#131315] border border-white/10 rounded-md p-5 flex flex-col gap-4 select-none">
-  <span class="text-[11px] font-mono text-[#869397] uppercase tracking-wider">호스팅 중인 MCP Tools (JSON-RPC 2.0)</span>
-  
-  <div class="grid grid-cols-2 gap-3 mt-1">
-    <div class="bg-[#18181b] border border-white/10 rounded p-3 flex items-center justify-between">
-      <div>
-        <div class="text-[13px] font-semibold text-[#4cd7f6] font-mono">byterag_query_graph</div>
-        <div class="text-[11px] text-[#869397] mt-0.5">BFS 다중 시드 양방향 서브그래프 탐색</div>
-      </div>
-      <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-[#8b5cf6]/15 text-[#d0bcff] border border-[#8b5cf6]/30">CORE</span>
-    </div>
+<script>
+  import { t } from '../lib/i18n.svelte.js';
 
-    <div class="bg-[#18181b] border border-white/10 rounded p-3 flex items-center justify-between">
-      <div>
-        <div class="text-[13px] font-semibold text-[#4cd7f6] font-mono">byterag_search_symbols</div>
-        <div class="text-[11px] text-[#869397] mt-0.5">코드 심볼, 함수, 구조체, 파일 위치 검색</div>
-      </div>
-      <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-[#8b5cf6]/15 text-[#d0bcff] border border-[#8b5cf6]/30">SEARCH</span>
-    </div>
+  let tools = [
+    { name: 'byterag_query_graph', desc: 'Query nodes and edges via BFS traversal (Depth 1-3)', icon: '🔍' },
+    { name: 'byterag_search_symbols', desc: 'Ultra-fast symbol prefix & substring search using Apache Arrow zero-copy memory', icon: '⚡' },
+    { name: 'byterag_blast_radius', desc: 'Calculate multi-hop impact radius and reverse dependencies before modifying symbols', icon: '💥' },
+    { name: 'byterag_find_path', desc: 'Find shortest dependency path between any two symbols in the knowledge graph', icon: '🛣️' },
+    { name: 'byterag_detect_cycles', desc: 'Detect circular dependencies across imports, extends, implements, and calls', icon: '🔄' },
+    { name: 'byterag_reindex', desc: 'Trigger incremental indexing on modified workspace source files', icon: '🔁' },
+    { name: 'byterag_export_brdb', desc: 'Pack full AST graph + docs + test suites into a single portable .brdb archive', icon: '📦' },
+    { name: 'byterag_import_brdb', desc: 'Restore full AST graph and docs instantly from a portable .brdb file', icon: '📥' },
+    { name: 'byterag_index_status', desc: 'Inspect current file counts, symbol nodes, dirty flags, and WAL memory state', icon: '📊' },
+    { name: 'byterag_get_symbol', desc: 'Retrieve full metadata and location of a specific symbol node', icon: '📌' },
+    { name: 'byterag_get_neighbors', desc: 'Get direct 1-hop inbound and outbound connected neighbor symbols', icon: '🌐' },
+    { name: 'byterag_list_by_type', desc: 'List symbols filtered by AST type (Struct, Class, Function, Interface)', icon: '📋' },
+    { name: 'byterag_read_snippet', desc: 'Read exact code snippet lines for a specific AST node', icon: '📖' },
+  ];
+</script>
 
-    <div class="bg-[#18181b] border border-white/10 rounded p-3 flex items-center justify-between">
-      <div>
-        <div class="text-[13px] font-semibold text-[#4cd7f6] font-mono">byterag_blast_radius</div>
-        <div class="text-[11px] text-[#869397] mt-0.5">코드 수정 시 파급력 및 영향도 전파 분석</div>
+<div class="flex-1 flex flex-col gap-4 overflow-hidden select-none">
+  <div class="bg-[#131315] border border-white/10 rounded-md p-5 flex items-center justify-between">
+    <div>
+      <div class="text-sm font-bold text-[#e5e1e4] tracking-tight">{t('mcp_header_title')}</div>
+      <div class="text-xs font-mono text-[#869397] mt-0.5">
+        {t('mcp_header_sub')}
       </div>
-      <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-[#8b5cf6]/15 text-[#d0bcff] border border-[#8b5cf6]/30">ANALYTICS</span>
     </div>
+    <span class="text-xs font-mono px-2.5 py-1 rounded bg-[#06b6d4]/10 text-[#4cd7f6] border border-[#06b6d4]/20">
+      {t('mcp_tool_count')}
+    </span>
+  </div>
 
-    <div class="bg-[#18181b] border border-white/10 rounded p-3 flex items-center justify-between">
-      <div>
-        <div class="text-[13px] font-semibold text-[#4cd7f6] font-mono">byterag_find_path</div>
-        <div class="text-[11px] text-[#869397] mt-0.5">두 심볼 간 최단 의존 호출 경로 탐색</div>
+  <div class="flex-1 overflow-y-auto grid grid-cols-2 gap-3 pr-1">
+    {#each tools as tool}
+      <div class="p-3.5 bg-[#131315] border border-white/10 hover:border-[#06b6d4]/40 rounded-md flex items-start gap-3 transition-all">
+        <span class="text-xl">{tool.icon}</span>
+        <div class="flex-1 overflow-hidden">
+          <div class="text-xs font-bold font-mono text-[#4cd7f6] truncate">{tool.name}</div>
+          <div class="text-[11px] text-[#869397] font-mono mt-1 leading-relaxed">{tool.desc}</div>
+        </div>
       </div>
-      <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-[#8b5cf6]/15 text-[#d0bcff] border border-[#8b5cf6]/30">GRAPH</span>
-    </div>
-
-    <div class="bg-[#18181b] border border-white/10 rounded p-3 flex items-center justify-between">
-      <div>
-        <div class="text-[13px] font-semibold text-[#4cd7f6] font-mono">byterag_detect_cycles</div>
-        <div class="text-[11px] text-[#869397] mt-0.5">순환 참조(Circular Dependency) 감지</div>
-      </div>
-      <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-[#8b5cf6]/15 text-[#d0bcff] border border-[#8b5cf6]/30">LINT</span>
-    </div>
-
-    <div class="bg-[#18181b] border border-white/10 rounded p-3 flex items-center justify-between">
-      <div>
-        <div class="text-[13px] font-semibold text-[#4cd7f6] font-mono">byterag_export_brdb</div>
-        <div class="text-[11px] text-[#869397] mt-0.5">고성능 포터블 단일 파일 영속 DB 백업</div>
-      </div>
-      <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-[#8b5cf6]/15 text-[#d0bcff] border border-[#8b5cf6]/30">DB</span>
-    </div>
+    {/each}
   </div>
 </div>

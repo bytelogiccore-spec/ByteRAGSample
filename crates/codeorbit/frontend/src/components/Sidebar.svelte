@@ -1,5 +1,5 @@
 <script>
-  import { invokeCommand } from '../lib/tauri.js';
+  import { t } from '../lib/i18n.svelte.js';
 
   let { activeTab = $bindable('tab-overview'), status = {} } = $props();
 </script>
@@ -13,7 +13,7 @@
       </div>
       <div>
         <div class="text-[15px] font-bold text-[#e5e1e4] tracking-tight">CodeOrbit</div>
-        <div class="text-[10px] font-mono text-[#4cd7f6] bg-[#06b6d4]/10 px-1.5 py-0.5 rounded">BYTERAG ENGINE</div>
+        <div class="text-[10px] font-mono text-[#4cd7f6] bg-[#06b6d4]/10 px-1.5 py-0.5 rounded">{t('engine_badge')}</div>
       </div>
     </div>
 
@@ -27,7 +27,7 @@
           {#if activeTab === 'tab-overview'}
             <div class="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[#06b6d4] rounded-r shadow-[0_0_8px_#06b6d4]"></div>
           {/if}
-          ⚡ AI 관제 & 대시보드
+          {t('nav_overview')}
         </button>
       </li>
       <li>
@@ -38,7 +38,7 @@
           {#if activeTab === 'tab-docs'}
             <div class="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[#06b6d4] rounded-r shadow-[0_0_8px_#06b6d4]"></div>
           {/if}
-          🗄️ ByteRAG 문서 저장소
+          {t('nav_docs')}
         </button>
       </li>
       <li>
@@ -49,7 +49,7 @@
           {#if activeTab === 'tab-tests'}
             <div class="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[#06b6d4] rounded-r shadow-[0_0_8px_#06b6d4]"></div>
           {/if}
-          🛡️ 테스트 품질 관제소
+          {t('nav_tests')}
         </button>
       </li>
       <li>
@@ -60,7 +60,7 @@
           {#if activeTab === 'tab-mcp'}
             <div class="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[#06b6d4] rounded-r shadow-[0_0_8px_#06b6d4]"></div>
           {/if}
-          🔌 MCP 도구 카탈로그
+          {t('nav_mcp')}
         </button>
       </li>
       <li>
@@ -71,7 +71,7 @@
           {#if activeTab === 'tab-settings'}
             <div class="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[#06b6d4] rounded-r shadow-[0_0_8px_#06b6d4]"></div>
           {/if}
-          ⚙️ 환경 설정 & 시작프로그램
+          {t('nav_settings')}
         </button>
       </li>
     </ul>
@@ -82,7 +82,7 @@
     <div class="flex items-center justify-between px-3 py-2 bg-[#18181b] border border-white/10 rounded-md text-[11px] font-mono">
       <div class="flex items-center gap-2">
         <span class="w-[7px] h-[7px] rounded-full {status.indexing ? 'bg-amber-500 shadow-[0_0_6px_#f59e0b]' : 'bg-[#10b981] shadow-[0_0_6px_#10b981]'}"></span>
-        <span class="text-[#e5e1e4] font-semibold">{status.indexing ? 'INDEXING...' : 'MCP READY'}</span>
+        <span class="text-[#e5e1e4] font-semibold">{status.indexing ? t('status_indexing') : t('status_ready')}</span>
       </div>
       <span class="text-[#869397]">v0.1.0</span>
     </div>

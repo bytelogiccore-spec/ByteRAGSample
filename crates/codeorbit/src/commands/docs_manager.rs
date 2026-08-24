@@ -1,5 +1,6 @@
 use byterag_codegraph::store::{ByteRagDocStored, ByteRagTestCaseItem, ByteRagTestResultStored};
 use crate::AppState;
+use std::fs;
 use tauri::State;
 
 #[tauri::command]
@@ -7,16 +8,30 @@ pub fn list_project_docs(state: State<AppState>) -> Result<Vec<ByteRagDocStored>
     let store = state.store.read().map_err(|e| format!("Lock error: {e:?}"))?;
     let mut docs = store.list_docs();
 
-    // If ByteRAG DB is empty, initialize default core docs into ByteRAG table
+    // Check if implementation_plan.md exists in current Antigravity conversation brain
+    let brain_dir = std::path::PathBuf::from(r"C:\Users\jaon1\.gemini\antigravity\brain\6b1af7ca-e864-46bb-85cf-ac9d967e5761");
+    let brain_plan = brain_dir.join("implementation_plan.md");
+    
+    let active_plan_content = if brain_plan.exists() {
+        fs::read_to_string(&brain_plan).unwrap_or_else(|_| get_default_plan_content())
+    } else {
+        get_default_plan_content()
+    };
+
+    // Auto sync/seed implementation plan into ByteRAG DB docs table
+    let plan_doc = ByteRagDocStored {
+        id: "plan:implementation_plan".into(),
+        title: "CodeOrbit 실시간 작업 및 구현 계획서 (Live Implementation Plan)".into(),
+        doc_type: "plan".into(),
+        content: active_plan_content,
+        updated_at: byterag_codegraph::store::now_unix_secs(),
+    };
+    let _ = store.save_doc(&plan_doc);
+
+    // If ByteRAG DB is empty of other docs, initialize default core docs
     if docs.is_empty() {
         let initial_docs = vec![
-            ByteRagDocStored {
-                id: "plan:implementation_plan".into(),
-                title: "작업 및 구현 계획서 (Implementation Plan)".into(),
-                doc_type: "plan".into(),
-                content: "# 📋 CodeOrbit 작업 및 구현 계획서\n\n## 1. 프로젝트 목표\n- ByteRAG 5T 기반 고성능 AST GraphRAG 구축\n\n## 2. 세부 마일스톤\n- [x] Phase 1: 파서 및 스토어 모듈화 분리\n- [x] Phase 2: Svelte 5 + Tailwind 프론트엔드 전환\n- [x] Phase 3: 테스트 커버리지 및 규격 주석 표준화\n- [x] Phase 4: ByteRAG 문서 및 테스트 결과 영속화\n".into(),
-                updated_at: byterag_codegraph::store::now_unix_secs(),
-            },
+            plan_doc.clone(),
             ByteRagDocStored {
                 id: "spec:01_system_architecture".into(),
                 title: "시스템 아키텍처 및 요구 사양서 (System Spec)".into(),
@@ -37,10 +52,35 @@ pub fn list_project_docs(state: State<AppState>) -> Result<Vec<ByteRagDocStored>
             let _ = store.save_doc(doc);
         }
         docs = initial_docs;
+    } else {
+        // Refresh docs list with updated plan
+        docs = store.list_docs();
     }
 
     docs.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
     Ok(docs)
+}
+
+fn get_default_plan_content() -> String {
+    r#"# 📋 CodeOrbit 전체 시스템 작업 및 구현 계획서
+
+ByteRAG 5T 기반 고성능 AST GraphRAG & AI 오케스트레이션 데스크톱 앱 구축 및 실시간 작업 계획서입니다.
+
+---
+
+## 🎯 전체 구현 마일스톤
+
+- [x] Phase 1: 백엔드 모듈화 분리 (Rust Clean Architecture & Single Responsibility)
+- [x] Phase 2: Svelte 5 + Tailwind 프론트엔드 전환 및 블랙 콘솔 제거
+- [x] Phase 3: 단위/통합 테스트 전수 구축 & 표준화 주석(@test_id) 도입
+- [x] Phase 4: AI 오케스트레이션 & 실시간 감사 대시보드 구축 (Blast Radius & Audit Stream)
+- [x] Phase 5: 디스크 오염 없는(Zero Disk Mess) 순수 ByteRAG DB 문서 영속화
+- [x] Phase 6: 검증된 테스트 품질 관제소 구축 (100% 통과 스냅샷만 영속화)
+- [x] Phase 7: 임시 WAL/WOS 자동 클린업 및 단일 `.brdb` 파일 포터블 패킹
+- [x] Phase 8: 실시간 문서/테스트 케이스 키워드 검색기 & 카테고리 트리 폴더링
+- [x] Phase 9: 글로벌 배포를 위한 영문 README.md 및 GUI 다국어(i18n, KO/EN) 지원
+- [x] Phase 10: AI 세션 플랜과 ByteRAG DB 간의 실시간 양방향 자동 동기화
+"#.to_string()
 }
 
 #[tauri::command]

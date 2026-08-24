@@ -38,17 +38,31 @@ pub fn get_project_plan_status(state: State<AppState>) -> Result<ProjectPlanStat
     let store = state.store.read().map_err(|e| format!("Lock error: {e:?}"))?;
     let target_dir = store.target_dir();
 
-    // 1. Check implementation_plan.md in project or brain
-    let mut plan_path = target_dir.join("implementation_plan.md");
-    if !plan_path.exists() {
-        plan_path = target_dir.join("docs").join("implementation_plan.md");
-    }
-
     let mut milestones = Vec::new();
     let mut plan_title = String::from("프로젝트 작업 계획");
     let mut has_plan = false;
 
-    if plan_path.exists() {
+    // 1. Check ByteRAG DB stored plan first (Zero Disk Mess)
+    if let Some(plan_doc) = store.get_doc("plan:implementation_plan") {
+        has_plan = true;
+        plan_title = plan_doc.title.clone();
+        for line in plan_doc.content.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with("- [ ] ") || trimmed.starts_with("- [x] ") || trimmed.starts_with("- [X] ") {
+                let is_done = trimmed.starts_with("- [x] ") || trimmed.starts_with("- [X] ");
+                let task_text = trimmed[6..].trim().to_string();
+                milestones.push(PlanMilestone {
+                    title: task_text,
+                    completed: is_done,
+                    raw: trimmed.to_string(),
+                });
+            }
+        }
+    }
+
+    // 2. Fallback to physical implementation_plan.md if exists
+    let plan_path = target_dir.join("implementation_plan.md");
+    if !has_plan && plan_path.exists() {
         has_plan = true;
         if let Ok(content) = fs::read_to_string(&plan_path) {
             for line in content.lines() {
