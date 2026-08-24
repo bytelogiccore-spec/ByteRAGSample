@@ -1,5 +1,5 @@
-// Prevents additional console window on Windows in release, DO NOT REMOVE!!
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// Prevents black console window from appearing on Windows desktop launch
+#![windows_subsystem = "windows"]
 
 pub mod commands;
 pub mod config;
