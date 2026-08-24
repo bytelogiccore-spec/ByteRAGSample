@@ -1,78 +1,38 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+pub mod commands;
+pub mod config;
+
 use byterag_codegraph::GraphStore;
-use serde_json::Value;
+use commands::*;
+use config::{ensure_workspace_in_config, load_config, save_config};
 use std::env;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 use std::thread;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager, State, WindowEvent};
-use tauri_plugin_autostart::ManagerExt;
+use tauri::{Manager, WindowEvent};
 
-struct AppState {
-    store: Arc<RwLock<GraphStore>>,
-}
-
-#[tauri::command]
-fn get_index_status(state: State<AppState>) -> Result<Value, String> {
-    let store = state.store.read().map_err(|e| e.to_string())?;
-    Ok(store.index_status())
-}
-
-#[tauri::command]
-fn trigger_reindex(target_dir: Option<String>, state: State<AppState>) -> Result<String, String> {
-    let mut store = state.store.write().map_err(|e| e.to_string())?;
-    if let Some(dir) = target_dir.filter(|s| !s.trim().is_empty()) {
-        store.set_target_dir(PathBuf::from(dir));
-    }
-    let store_bg = store.clone_arcs();
-    thread::spawn(move || {
-        store_bg.index_directory();
-    });
-    Ok(format!("Started indexing for {}", store.target_dir().display()))
-}
-
-#[tauri::command]
-fn search_symbols(query: String, limit: Option<usize>, state: State<AppState>) -> Result<Value, String> {
-    let store = state.store.read().map_err(|e| e.to_string())?;
-    let matches = store.search_symbols_with_limit(&query, limit.unwrap_or(50));
-    serde_json::to_value(matches).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-fn is_autostart_enabled(app: AppHandle) -> Result<bool, String> {
-    let autostart = app.autolaunch();
-    autostart.is_enabled().map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-fn toggle_autostart(enabled: bool, app: AppHandle) -> Result<(), String> {
-    let autostart = app.autolaunch();
-    if enabled {
-        autostart.enable().map_err(|e| e.to_string())?;
-    } else {
-        autostart.disable().map_err(|e| e.to_string())?;
-    }
-    Ok(())
-}
-
-#[tauri::command]
-fn hide_to_tray(app: AppHandle) -> Result<(), String> {
-    if let Some(window) = app.get_webview_window("main") {
-        let _ = window.hide();
-    }
-    Ok(())
+pub struct AppState {
+    pub store: Arc<RwLock<GraphStore>>,
 }
 
 fn main() {
-    let target_dir = env::var("BYTERAG_TARGET_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| env::current_dir().unwrap_or_default());
+    let mut cfg = load_config();
+    let initial_dir = if let Ok(target) = env::var("BYTERAG_TARGET_DIR") {
+        PathBuf::from(target)
+    } else if !cfg.active_path.is_empty() && PathBuf::from(&cfg.active_path).exists() {
+        PathBuf::from(&cfg.active_path)
+    } else {
+        env::current_dir().unwrap_or_default()
+    };
 
-    let store = Arc::new(RwLock::new(GraphStore::open(target_dir)));
+    ensure_workspace_in_config(&mut cfg, &initial_dir);
+    let _ = save_config(&cfg);
+
+    let store = Arc::new(RwLock::new(GraphStore::open(initial_dir)));
 
     // Initial background indexing
     {
@@ -180,6 +140,9 @@ fn main() {
             get_index_status,
             trigger_reindex,
             search_symbols,
+            get_workspaces,
+            add_workspace,
+            remove_workspace,
             is_autostart_enabled,
             toggle_autostart,
             hide_to_tray,
