@@ -13,7 +13,7 @@
       </div>
       <div>
         <div class="text-[15px] font-bold text-[#e5e1e4] tracking-tight">CodeOrbit</div>
-        <div class="text-[10px] font-mono text-[#4cd7f6] bg-[#06b6d4]/10 px-1.5 py-0.5 rounded">AST GRAPH ENGINE</div>
+        <div class="text-[10px] font-mono text-[#4cd7f6] bg-[#06b6d4]/10 px-1.5 py-0.5 rounded">AI ORCHESTRATOR</div>
       </div>
     </div>
 
@@ -27,7 +27,18 @@
           {#if activeTab === 'tab-overview'}
             <div class="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[#06b6d4] rounded-r shadow-[0_0_8px_#06b6d4]"></div>
           {/if}
-          ⚡ 대시보드 개요
+          ⚡ AI 관제 & 대시보드
+        </button>
+      </li>
+      <li>
+        <button
+          onclick={() => activeTab = 'tab-docs'}
+          class="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-md text-[13px] font-medium transition-all text-left relative {activeTab === 'tab-docs' ? 'bg-[#18181b] text-white border border-white/10' : 'text-[#869397] hover:text-[#e5e1e4] hover:bg-[#18181b]'}"
+        >
+          {#if activeTab === 'tab-docs'}
+            <div class="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[#06b6d4] rounded-r shadow-[0_0_8px_#06b6d4]"></div>
+          {/if}
+          📚 플랜 & 사양/매뉴얼 관리
         </button>
       </li>
       <li>
@@ -38,7 +49,7 @@
           {#if activeTab === 'tab-mcp'}
             <div class="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[#06b6d4] rounded-r shadow-[0_0_8px_#06b6d4]"></div>
           {/if}
-          🔌 MCP 도구 및 상태
+          🔌 MCP 도구 카탈로그
         </button>
       </li>
       <li>

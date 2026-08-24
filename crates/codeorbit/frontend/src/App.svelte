@@ -6,6 +6,7 @@
   import PlanProgressCard from './components/PlanProgressCard.svelte';
   import AiAuditStream from './components/AiAuditStream.svelte';
   import BlastRadiusViewer from './components/BlastRadiusViewer.svelte';
+  import DocsManagerTab from './components/DocsManagerTab.svelte';
   import McpToolsTab from './components/McpToolsTab.svelte';
   import SettingsTab from './components/SettingsTab.svelte';
   import { invokeCommand } from './lib/tauri.js';
@@ -145,6 +146,8 @@
 
         <!-- Blast Radius & GraphRAG Traversal Viewer -->
         <BlastRadiusViewer />
+      {:else if activeTab === 'tab-docs'}
+        <DocsManagerTab />
       {:else if activeTab === 'tab-mcp'}
         <McpToolsTab />
       {:else if activeTab === 'tab-settings'}
