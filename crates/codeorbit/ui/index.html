@@ -566,6 +566,7 @@
     async function syncState() {
       try {
         const s = await safeInvoke('get_index_status');
+        if (!s) return;
         elCardFiles.textContent = (s.files || 0).toLocaleString();
         elCardNodes.textContent = (s.nodes || 0).toLocaleString();
         elCardEdges.textContent = (s.edges || 0).toLocaleString();
@@ -587,7 +588,6 @@
           elLastTime.textContent = `최근 인덱싱: ${dt.toLocaleTimeString()}`;
         }
       } catch (e) {
-        // Fallback for browser testing
         console.warn('State sync notice:', e);
       }
     }
@@ -609,7 +609,7 @@
 
     document.getElementById('btn-reindex-top').addEventListener('click', async () => {
       try {
-        await safeInvoke('trigger_reindex', { targetDir: null });
+        await safeInvoke('trigger_reindex', { target_dir: null, targetDir: null });
         syncState();
       } catch (e) {
         alert('재인덱싱 알림: ' + e);
@@ -620,18 +620,19 @@
       const dir = elTargetInput.value.trim();
       if (!dir) return;
       try {
-        await safeInvoke('trigger_reindex', { targetDir: dir });
+        await safeInvoke('trigger_reindex', { target_dir: dir, targetDir: dir });
         syncState();
       } catch (e) {
         alert('타겟 경로 변경: ' + e);
       }
     });
 
-    document.getElementById('btn-do-search').addEventListener('click', async () => {
+    async function performSearch() {
       const query = elSearchInput.value.trim();
       if (!query) return;
       try {
-        const list = await safeInvoke('search_symbols', { query, limit: 30 });
+        elResultsBox.innerHTML = '<div class="empty-prompt" style="color:var(--primary-cyan)">지식 그래프 탐색 중...</div>';
+        const list = await safeInvoke('search_symbols', { query: query, limit: 50 });
         if (!list || list.length === 0) {
           elResultsBox.innerHTML = '<div class="empty-prompt">검색 결과가 없습니다.</div>';
           return;
@@ -646,12 +647,17 @@
           </div>
         `).join('');
       } catch (e) {
-        alert('탐색 알림: ' + e);
+        elResultsBox.innerHTML = `<div class="empty-prompt" style="color:#ef4444">탐색 실패: ${escapeHtml(String(e))}</div>`;
       }
-    });
+    }
+
+    document.getElementById('btn-do-search').addEventListener('click', performSearch);
 
     elSearchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') document.getElementById('btn-do-search').click();
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        performSearch();
+      }
     });
 
     document.getElementById('btn-minimize-tray').addEventListener('click', async () => {
@@ -666,9 +672,18 @@
       );
     }
 
+    // Initial load: show initial default symbols
     syncState();
     syncAutostart();
     setInterval(syncState, 2000);
+
+    // Initial warm search for visible UI feedback
+    setTimeout(() => {
+      if (!elSearchInput.value) {
+        elSearchInput.value = 'main';
+        performSearch();
+      }
+    }, 600);
   </script>
 </body>
 </html>
