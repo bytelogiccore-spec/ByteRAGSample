@@ -21,13 +21,7 @@ pub struct AppState {
 
 fn main() {
     let mut cfg = load_config();
-    let initial_dir = if let Ok(target) = env::var("BYTERAG_TARGET_DIR") {
-        PathBuf::from(target)
-    } else if !cfg.active_path.is_empty() && PathBuf::from(&cfg.active_path).exists() {
-        PathBuf::from(&cfg.active_path)
-    } else {
-        env::current_dir().unwrap_or_default()
-    };
+    let initial_dir = crate::config::resolve_initial_workspace(&cfg);
 
     ensure_workspace_in_config(&mut cfg, &initial_dir);
     let _ = save_config(&cfg);

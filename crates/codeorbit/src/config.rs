@@ -78,3 +78,22 @@ pub fn ensure_workspace_in_config(cfg: &mut AppConfig, target_path: &Path) {
     }
     cfg.active_path = path_str;
 }
+
+pub fn resolve_initial_workspace(cfg: &AppConfig) -> PathBuf {
+    if let Ok(target) = std::env::var("BYTERAG_TARGET_DIR") {
+        return PathBuf::from(target);
+    }
+    if !cfg.active_path.is_empty() && PathBuf::from(&cfg.active_path).exists() {
+        return PathBuf::from(&cfg.active_path);
+    }
+    // If running inside target/debug or crates/codeorbit, find workspace root
+    let cur = std::env::current_dir().unwrap_or_default();
+    let mut p = cur.as_path();
+    while let Some(parent) = p.parent() {
+        if p.join("Cargo.lock").exists() && p.join("crates").exists() {
+            return p.to_path_buf();
+        }
+        p = parent;
+    }
+    cur
+}
