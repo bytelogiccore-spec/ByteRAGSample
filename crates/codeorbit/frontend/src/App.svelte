@@ -59,7 +59,7 @@
       await invokeCommand('trigger_reindex', { targetDir: path, target_dir: path });
       await syncStatus();
     } catch (e) {
-      alert('워크스페이스 전환 실패: ' + e);
+      alert('Failed to switch workspace: ' + e);
     }
   }
 
@@ -73,7 +73,7 @@
       await invokeCommand('trigger_reindex', { targetDir: path, target_dir: path });
       await syncStatus();
     } catch (e) {
-      alert('워크스페이스 추가 실패: ' + e);
+      alert('Failed to add workspace: ' + e);
     }
   }
 
@@ -89,7 +89,7 @@
         }
       }
     } catch (e) {
-      alert('워크스페이스 제거 실패: ' + e);
+      alert('Failed to remove workspace: ' + e);
     }
   }
 
@@ -98,7 +98,7 @@
       await invokeCommand('trigger_reindex', { targetDir: activePath, target_dir: activePath });
       await syncStatus();
     } catch (e) {
-      alert('재인덱싱 요청 실패: ' + e);
+      alert('Reindex request failed: ' + e);
     }
   }
 
@@ -117,11 +117,11 @@
 </script>
 
 <div class="flex h-screen w-screen bg-[#09090b] text-[#e5e1e4] overflow-hidden select-none">
-  <!-- Left Modular Sidebar -->
+  <!-- Left Responsive Sidebar -->
   <Sidebar bind:activeTab {status} />
 
   <!-- Main Canvas -->
-  <div class="flex-1 flex flex-col overflow-hidden">
+  <div class="flex-1 flex flex-col overflow-hidden min-w-0">
     <!-- Top Workspace Selector Bar -->
     <WorkspaceSelector
       {workspaces}
@@ -133,16 +133,20 @@
       onHideToTray={handleHideToTray}
     />
 
-    <!-- Main Dynamic Tab View -->
-    <div class="flex-1 p-5 overflow-y-auto flex flex-col gap-4">
+    <!-- Main Dynamic Tab View with Responsive Stack Layout -->
+    <div class="flex-1 p-3.5 lg:p-6 overflow-y-auto flex flex-col gap-4 custom-scrollbar">
       {#if activeTab === 'tab-overview'}
-        <!-- 4 Metrics Cards -->
+        <!-- 4 Metrics Cards (Dynamic 1-4 Grid) -->
         <MetricsGrid {status} />
 
-        <!-- 2 Column Layout: Plan Progress & Live AI Audit -->
-        <div class="grid grid-cols-2 gap-4">
-          <PlanProgressCard {planStatus} />
-          <AiAuditStream {auditLogs} />
+        <!-- Responsive Split View: 1 Column on Mobile/Tablet, 12 Columns on Desktop -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div class="lg:col-span-7">
+            <PlanProgressCard {planStatus} />
+          </div>
+          <div class="lg:col-span-5">
+            <AiAuditStream {auditLogs} />
+          </div>
         </div>
 
         <!-- Blast Radius & GraphRAG Traversal Viewer -->
