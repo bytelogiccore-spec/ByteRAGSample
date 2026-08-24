@@ -1,8 +1,8 @@
-// Simple reactive i18n store in standard Svelte 5 .svelte.js module
+// Simple reactive i18n store in standard Svelte 5 .svelte.js module (Default: English 'en')
 let currentLang = $state(
   typeof localStorage !== 'undefined'
-    ? localStorage.getItem('codeorbit_lang') || 'ko'
-    : 'ko'
+    ? localStorage.getItem('codeorbit_lang') || 'en'
+    : 'en'
 );
 
 export function getLang() {
@@ -48,14 +48,15 @@ const translations = {
     plan_subtitle: '실시간 마일스톤 트래커',
     plan_file: '계획 파일',
     plan_progress: '전체 진행률',
+    plan_empty: '현재 등록된 작업 계획서가 없습니다.',
     audit_title: 'AI 실시간 활동 감사 스트림',
     audit_subtitle: 'MCP 도구 호출 및 영향도 로그',
-    audit_no_logs: '감사 로그가 없습니다.',
+    audit_no_logs: '기록된 AI 감사 로그가 없습니다.',
 
-    blast_title: 'GraphRAG 영향도 & 의존성 체인 뷰어',
+    blast_title: 'GraphRAG 영향도 & 의존 체인 분석',
     blast_placeholder: '심볼 검색 (예: GraphStore, parse_file)...',
-    blast_btn: '영향도 분석',
-    blast_nodes_found: '영향 받는 노드',
+    blast_btn: '분석',
+    blast_nodes_found: '예상 파급 심볼',
     blast_depth: '탐색 깊이',
 
     docs_tree_title: 'ByteRAG 문서 트리',
@@ -85,6 +86,9 @@ const translations = {
     mcp_header_title: 'ByteRAG GraphRAG MCP 도구 카탈로그',
     mcp_header_sub: 'Cursor, Claude Desktop, Antigravity 등 모든 LLM 클라이언트와 통신 가능한 13개 고성능 도구',
     mcp_tool_count: '총 13개 도구 사용 가능',
+    mcp_copy_cursor: '📋 Cursor MCP 설정 복사',
+    mcp_copy_claude: '📋 Claude Desktop 설정 복사',
+    mcp_copied: '✓ 설정이 클립보드에 복사되었습니다!',
 
     settings_title: '환경 설정 & 시스템 연동',
     settings_sub: '시스템 시작 시 자동 실행 및 백그라운드 상주 설정',
@@ -124,14 +128,15 @@ const translations = {
     plan_subtitle: 'Real-time milestone tracker',
     plan_file: 'Plan File',
     plan_progress: 'Total Progress',
+    plan_empty: 'No active plan found. Create one in Document Store.',
     audit_title: 'AI Live Activity Audit Stream',
     audit_subtitle: 'MCP tool invocation and blast radius logs',
-    audit_no_logs: 'No audit logs recorded yet.',
+    audit_no_logs: 'No AI audit logs recorded yet.',
 
     blast_title: 'GraphRAG Blast Radius & Dependency Viewer',
     blast_placeholder: 'Search symbol (e.g., GraphStore, parse_file)...',
-    blast_btn: 'Analyze Blast Radius',
-    blast_nodes_found: 'Affected Nodes',
+    blast_btn: 'Analyze',
+    blast_nodes_found: 'Affected Symbols',
     blast_depth: 'Traversal Depth',
 
     docs_tree_title: 'ByteRAG Document Tree',
@@ -161,6 +166,9 @@ const translations = {
     mcp_header_title: 'ByteRAG GraphRAG MCP Tool Catalog',
     mcp_header_sub: '13 high-performance tools communicating with Cursor, Claude Desktop, Antigravity, and any LLM client',
     mcp_tool_count: '13 Tools Available',
+    mcp_copy_cursor: '📋 Copy Cursor MCP Config',
+    mcp_copy_claude: '📋 Copy Claude Desktop Config',
+    mcp_copied: '✓ Config copied to clipboard!',
 
     settings_title: 'Settings & System Integration',
     settings_sub: 'Configure system startup and background tray behavior',
@@ -172,6 +180,6 @@ const translations = {
 };
 
 export function t(key) {
-  const langObj = translations[currentLang] || translations.ko;
+  const langObj = translations[currentLang] || translations.en;
   return langObj[key] || key;
 }

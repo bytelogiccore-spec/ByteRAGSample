@@ -1,92 +1,19 @@
 use byterag_codegraph::store::{ByteRagDocStored, ByteRagTestCaseItem, ByteRagTestResultStored};
 use crate::AppState;
-use std::fs;
 use tauri::State;
 
 #[tauri::command]
 pub fn list_project_docs(state: State<AppState>) -> Result<Vec<ByteRagDocStored>, String> {
     let store = state.store.read().map_err(|e| format!("Lock error: {e:?}"))?;
     let mut docs = store.list_docs();
-
-    // Check if implementation_plan.md exists in current Antigravity conversation brain
-    let brain_dir = std::path::PathBuf::from(r"C:\Users\jaon1\.gemini\antigravity\brain\6b1af7ca-e864-46bb-85cf-ac9d967e5761");
-    let brain_plan = brain_dir.join("implementation_plan.md");
-    
-    let active_plan_content = if brain_plan.exists() {
-        fs::read_to_string(&brain_plan).unwrap_or_else(|_| get_default_plan_content())
-    } else {
-        get_default_plan_content()
-    };
-
-    // Auto sync/seed implementation plan into ByteRAG DB docs table
-    let plan_doc = ByteRagDocStored {
-        id: "plan:implementation_plan".into(),
-        title: "CodeOrbit 실시간 작업 및 구현 계획서 (Live Implementation Plan)".into(),
-        doc_type: "plan".into(),
-        content: active_plan_content,
-        updated_at: byterag_codegraph::store::now_unix_secs(),
-    };
-    let _ = store.save_doc(&plan_doc);
-
-    // If ByteRAG DB is empty of other docs, initialize default core docs
-    if docs.is_empty() {
-        let initial_docs = vec![
-            plan_doc.clone(),
-            ByteRagDocStored {
-                id: "spec:01_system_architecture".into(),
-                title: "시스템 아키텍처 및 요구 사양서 (System Spec)".into(),
-                doc_type: "spec".into(),
-                content: "# 📐 CodeOrbit 시스템 아키텍처 사양서\n\n## 1. 코어 저장소 구조\n- **ByteRAG 5-Tier**: L0 WAL Buffer + CSR Graph Traversal Engine\n- **Zero-Copy Columnar Scan**: Apache Arrow 기반 대규모 심볼 고속 질의\n- **단일 바이너리 패킹**: `.byterag/graph.brdb` 포터블 아카이브\n".into(),
-                updated_at: byterag_codegraph::store::now_unix_secs(),
-            },
-            ByteRagDocStored {
-                id: "manual:02_ui_manual".into(),
-                title: "UI 컴포넌트 및 기능 매뉴얼 (UI Manual)".into(),
-                doc_type: "manual".into(),
-                content: "# 📖 CodeOrbit UI 매뉴얼\n\n## 1. 주요 기능\n- **AI 관제 대시보드**: AI 활동 감사 스트림 및 진행률 트래커\n- **문서 관리자**: ByteRAG 영속화 기반 기획/사양/매뉴얼 관리\n- **테스트 관제소**: 규격화된 단위/통합 테스트 실시간 검증 뷰어\n".into(),
-                updated_at: byterag_codegraph::store::now_unix_secs(),
-            }
-        ];
-
-        for doc in &initial_docs {
-            let _ = store.save_doc(doc);
-        }
-        docs = initial_docs;
-    } else {
-        // Refresh docs list with updated plan
-        docs = store.list_docs();
-    }
-
     docs.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
     Ok(docs)
-}
-
-fn get_default_plan_content() -> String {
-    r#"# 📋 CodeOrbit 전체 시스템 작업 및 구현 계획서
-
-ByteRAG 5T 기반 고성능 AST GraphRAG & AI 오케스트레이션 데스크톱 앱 구축 및 실시간 작업 계획서입니다.
-
----
-
-## 🎯 전체 구현 마일스톤
-
-- [x] Phase 1: 백엔드 모듈화 분리 (Rust Clean Architecture & Single Responsibility)
-- [x] Phase 2: Svelte 5 + Tailwind 프론트엔드 전환 및 블랙 콘솔 제거
-- [x] Phase 3: 단위/통합 테스트 전수 구축 & 표준화 주석(@test_id) 도입
-- [x] Phase 4: AI 오케스트레이션 & 실시간 감사 대시보드 구축 (Blast Radius & Audit Stream)
-- [x] Phase 5: 디스크 오염 없는(Zero Disk Mess) 순수 ByteRAG DB 문서 영속화
-- [x] Phase 6: 검증된 테스트 품질 관제소 구축 (100% 통과 스냅샷만 영속화)
-- [x] Phase 7: 임시 WAL/WOS 자동 클린업 및 단일 `.brdb` 파일 포터블 패킹
-- [x] Phase 8: 실시간 문서/테스트 케이스 키워드 검색기 & 카테고리 트리 폴더링
-- [x] Phase 9: 글로벌 배포를 위한 영문 README.md 및 GUI 다국어(i18n, KO/EN) 지원
-- [x] Phase 10: AI 세션 플랜과 ByteRAG DB 간의 실시간 양방향 자동 동기화
-"#.to_string()
 }
 
 #[tauri::command]
 pub fn get_doc_content(id: String, state: State<AppState>) -> Result<ByteRagDocStored, String> {
     let store = state.store.read().map_err(|e| format!("Lock error: {e:?}"))?;
-    store.get_doc(&id).ok_or_else(|| "문서를 찾을 수 없습니다.".to_string())
+    store.get_doc(&id).ok_or_else(|| "Document not found in ByteRAG DB".to_string())
 }
 
 #[tauri::command]
@@ -109,9 +36,9 @@ pub fn create_doc_in_byterag(title: String, doc_type: String, state: State<AppSt
     let id = format!("{}:{}", doc_type, title.to_lowercase().replace(' ', "_"));
     
     let default_content = match doc_type.as_str() {
-        "plan" => format!("# 📋 {}\n\n## 목표\n- \n\n## 마일스톤\n- [ ] Phase 1: \n- [ ] Phase 2: \n", title),
-        "spec" => format!("# 📐 {}\n\n## 기능 개요\n- \n\n## 요구사항 및 아키텍처\n- \n", title),
-        "manual" => format!("# 📖 {}\n\n## 시작하기\n- \n\n## 사용 방법\n- \n", title),
+        "plan" => format!("# 📋 {}\n\n## Goal\n- \n\n## Milestones\n- [ ] Phase 1: \n- [ ] Phase 2: \n", title),
+        "spec" => format!("# 📐 {}\n\n## Overview\n- \n\n## Architecture & Requirements\n- \n", title),
+        "manual" => format!("# 📖 {}\n\n## Getting Started\n- \n\n## Usage Guide\n- \n", title),
         _ => format!("# 📝 {}\n\n", title),
     };
 
@@ -147,65 +74,65 @@ pub fn get_test_verification_report(state: State<AppState>) -> Result<ByteRagTes
             ByteRagTestCaseItem {
                 test_id: "TC-PARSER-001".into(),
                 name: "test_parse_rust_code".into(),
-                title: "Rust AST 심볼 및 상속 관계 파싱".into(),
-                purpose: "Rust 파일에서 struct, trait, fn 선언 및 implements 관계 추출 검증".into(),
-                expected: "UserSession, Authenticatable, login 노드 및 Implements 엣지 검출".into(),
+                title: "Rust AST Symbols & Trait Implements Parsing".into(),
+                purpose: "Extract struct, trait, fn declarations, and implements relations from Rust source".into(),
+                expected: "Detect UserSession, Authenticatable, login nodes & Implements edges".into(),
                 passed: true,
             },
             ByteRagTestCaseItem {
                 test_id: "TC-PARSER-002".into(),
                 name: "test_parse_cpp_code".into(),
-                title: "C/C++ 헤더 및 클래스 상속 파싱".into(),
-                purpose: "C++ 소스에서 #include 지시자 및 class extends 상속 관계 추출 검증".into(),
-                expected: "VulkanRenderer(class) 노드 및 Includes, Extends 엣지 검출".into(),
+                title: "C/C++ Headers & Class Inheritance Parsing".into(),
+                purpose: "Extract #include directives and class extends inheritance from C++ source".into(),
+                expected: "Detect VulkanRenderer class node & Includes, Extends edges".into(),
                 passed: true,
             },
             ByteRagTestCaseItem {
                 test_id: "TC-PARSER-003".into(),
                 name: "test_parse_csharp_code".into(),
-                title: "C# 인터페이스 및 Using 파싱".into(),
-                purpose: "C# 소스에서 interface, class 선언 및 using 참조 관계 추출 검증".into(),
-                expected: "IRepository, SqlRepository 노드 및 Using, Implements 엣지 검출".into(),
+                title: "C# Interface & Using Directives Parsing".into(),
+                purpose: "Extract interface, class declarations, and using namespace references from C# source".into(),
+                expected: "Detect IRepository, SqlRepository nodes & Using, Implements edges".into(),
                 passed: true,
             },
             ByteRagTestCaseItem {
                 test_id: "TC-PARSER-004".into(),
                 name: "test_parse_typescript_code".into(),
-                title: "TypeScript / JS Import 및 클래스 구현".into(),
-                purpose: "TS/JS 파일에서 import 모듈, interface, extends/implements 다중 관계 검증".into(),
-                expected: "UserConfig, ApiClient 노드 및 Imports, Extends, Implements 엣지 검출".into(),
+                title: "TypeScript / JS Imports & Class Implements".into(),
+                purpose: "Extract import modules, interface, and multiple implements relations from TS/JS source".into(),
+                expected: "Detect UserConfig, ApiClient nodes & Imports, Extends, Implements edges".into(),
                 passed: true,
             },
             ByteRagTestCaseItem {
                 test_id: "TC-PARSER-005".into(),
                 name: "test_parse_python_code".into(),
-                title: "Python 모듈 Import 및 함수 정의 파싱".into(),
-                purpose: "Python 소스에서 from ... import 구문, class, def 함수 정의 추출 검증".into(),
-                expected: "ModelRunner, run_model 노드 및 Imports 엣지 검출".into(),
+                title: "Python Module Imports & Function Definitions".into(),
+                purpose: "Extract from ... import syntax, class, and def function definitions from Python source".into(),
+                expected: "Detect ModelRunner, run_model nodes & Imports edges".into(),
                 passed: true,
             },
             ByteRagTestCaseItem {
                 test_id: "TC-STORE-001".into(),
                 name: "test_store_lifecycle_and_search".into(),
-                title: "GraphStore 인덱싱, 탐색, 파급력, .brdb 전체 수명주기".into(),
-                purpose: "임시 DB 생성부터 증분 인덱싱, CsrGraph BFS 쿼리, Blast Radius 및 .brdb 패킹 파이프라인 검증".into(),
-                expected: "2개 파일 인덱싱, 심볼 검색 성공, Subgraph 추출, .brdb 파일 생성 완료".into(),
+                title: "GraphStore Indexing, Search, Blast Radius & .brdb Full Lifecycle".into(),
+                purpose: "Verify temporary DB creation, incremental indexing, CsrGraph BFS query, Blast Radius, and .brdb packaging".into(),
+                expected: "2 files indexed, symbol search succeeded, Subgraph extracted, .brdb archive created".into(),
                 passed: true,
             },
             ByteRagTestCaseItem {
                 test_id: "TC-TYPES-001".into(),
                 name: "test_node_type_parsing".into(),
-                title: "NodeType 문자열 파서 유효성 검증".into(),
-                purpose: "언어별 키워드가 NodeType 열거형으로 정확히 매핑되는지 검증".into(),
-                expected: "NodeType Variant 정확 반환 및 유효하지 않은 문자열 None 처리".into(),
+                title: "NodeType String Parser Validation".into(),
+                purpose: "Verify language keywords correctly map to NodeType enum variants".into(),
+                expected: "Accurate NodeType Variant returned and None for invalid strings".into(),
                 passed: true,
             },
             ByteRagTestCaseItem {
                 test_id: "TC-TYPES-002".into(),
                 name: "test_edge_type_as_str".into(),
-                title: "EdgeType 관계 식별자 직렬화 검증".into(),
-                purpose: "defines, calls, imports 등 의존성 엣지 식별자가 규격에 맞게 변환되는지 검증".into(),
-                expected: "소문자 표준 관계명 반환".into(),
+                title: "EdgeType Relation Identifier Serialization".into(),
+                purpose: "Verify dependency edge identifiers (defines, calls, imports) convert according to specification".into(),
+                expected: "Returns lowercase standardized relation name".into(),
                 passed: true,
             },
         ],
