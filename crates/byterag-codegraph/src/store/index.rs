@@ -104,6 +104,12 @@ impl GraphStore {
             eprintln!("byterag: flush after index failed: {err}");
         }
 
+        // Auto export to single portable graph.brdb
+        let default_brdb = self.default_brdb_path();
+        if let Err(err) = self.export_brdb(&default_brdb, 1) {
+            eprintln!("byterag: auto export brdb notice: {err}");
+        }
+
         let now = now_unix_secs();
         if let Ok(mut g) = self.last_indexed_at.lock() {
             *g = Some(now);
@@ -112,6 +118,7 @@ impl GraphStore {
             *g = file_count;
         }
         self.mark_dirty();
+        self.clear_dirty_if_unchanged(now);
         self.indexing.store(false, Ordering::SeqCst);
 
         eprintln!(
