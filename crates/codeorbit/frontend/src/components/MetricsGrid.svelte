@@ -10,53 +10,53 @@
   });
 </script>
 
-<div class="grid grid-cols-4 gap-3.5 select-none">
-  <!-- Card 1: Files -->
-  <div class="bg-[#131315] border border-white/10 hover:border-white/20 rounded-md p-4 flex flex-col justify-between transition-all">
+<div class="grid grid-cols-4 gap-4 select-none">
+  <!-- Card 1: Indexed Files (Cyan Glow) -->
+  <div class="glass-panel rounded-lg p-5 flex flex-col justify-between transition-all relative overflow-hidden group">
     <div class="flex items-center justify-between">
-      <span class="text-xs font-mono text-[#869397] uppercase">{t('metric_files')}</span>
-      <span class="text-sm">📁</span>
+      <span class="text-[11px] font-mono text-[#869397] uppercase tracking-wider">{t('metric_files')}</span>
+      <span class="text-xs px-1.5 py-0.5 rounded bg-[#06b6d4]/10 text-[#4cd7f6] font-mono">AST</span>
     </div>
-    <div class="my-2">
-      <div class="text-2xl font-black font-mono text-[#e5e1e4] tracking-tight">{status.files || 0}</div>
+    <div class="my-3">
+      <div class="text-3xl font-black font-mono text-[#4cd7f6] tracking-tight">{status.files || 0}</div>
     </div>
-    <div class="text-[10px] font-mono text-[#869397]">{t('metric_files_desc')}</div>
+    <div class="text-[11px] font-mono text-[#869397]">{t('metric_files_desc')}</div>
   </div>
 
-  <!-- Card 2: Knowledge Nodes -->
-  <div class="bg-[#131315] border border-white/10 hover:border-[#06b6d4]/40 rounded-md p-4 flex flex-col justify-between transition-all">
+  <!-- Card 2: Knowledge Nodes (Violet Glow) -->
+  <div class="glass-panel rounded-lg p-5 flex flex-col justify-between transition-all relative overflow-hidden group">
     <div class="flex items-center justify-between">
-      <span class="text-xs font-mono text-[#869397] uppercase">{t('metric_nodes')}</span>
-      <span class="text-sm">🧠</span>
+      <span class="text-[11px] font-mono text-[#869397] uppercase tracking-wider">{t('metric_nodes')}</span>
+      <span class="text-xs px-1.5 py-0.5 rounded bg-[#8b5cf6]/10 text-[#d0bcff] font-mono">SYMBOLS</span>
     </div>
-    <div class="my-2">
-      <div class="text-2xl font-black font-mono text-[#4cd7f6] tracking-tight">{status.nodes || 0}</div>
+    <div class="my-3">
+      <div class="text-3xl font-black font-mono text-[#d0bcff] tracking-tight">{status.nodes || 0}</div>
     </div>
-    <div class="text-[10px] font-mono text-[#869397]">{t('metric_nodes_desc')}</div>
+    <div class="text-[11px] font-mono text-[#869397]">{t('metric_nodes_desc')}</div>
   </div>
 
-  <!-- Card 3: Relation Edges -->
-  <div class="bg-[#131315] border border-white/10 hover:border-[#8b5cf6]/40 rounded-md p-4 flex flex-col justify-between transition-all">
+  <!-- Card 3: Relation Edges (Emerald Glow) -->
+  <div class="glass-panel rounded-lg p-5 flex flex-col justify-between transition-all relative overflow-hidden group">
     <div class="flex items-center justify-between">
-      <span class="text-xs font-mono text-[#869397] uppercase">{t('metric_edges')}</span>
-      <span class="text-sm">🔗</span>
+      <span class="text-[11px] font-mono text-[#869397] uppercase tracking-wider">{t('metric_edges')}</span>
+      <span class="text-xs px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono">RELATIONS</span>
     </div>
-    <div class="my-2">
-      <div class="text-2xl font-black font-mono text-[#a78bfa] tracking-tight">{status.edges || 0}</div>
+    <div class="my-3">
+      <div class="text-3xl font-black font-mono text-emerald-400 tracking-tight">{status.edges || 0}</div>
     </div>
-    <div class="text-[10px] font-mono text-[#869397]">{t('metric_edges_desc')}</div>
+    <div class="text-[11px] font-mono text-[#869397]">{t('metric_edges_desc')}</div>
   </div>
 
-  <!-- Card 4: 5T Storage Engine Mode -->
-  <div class="bg-[#131315] border border-white/10 hover:border-emerald-500/40 rounded-md p-4 flex flex-col justify-between transition-all">
+  <!-- Card 4: 5T Storage Engine Mode (Slate Glow) -->
+  <div class="glass-panel rounded-lg p-5 flex flex-col justify-between transition-all relative overflow-hidden group">
     <div class="flex items-center justify-between">
-      <span class="text-xs font-mono text-[#869397] uppercase">{t('metric_engine')}</span>
-      <span class="text-sm">⚡</span>
+      <span class="text-[11px] font-mono text-[#869397] uppercase tracking-wider">{t('metric_engine')}</span>
+      <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#10b981]"></span>
     </div>
-    <div class="my-2 flex items-baseline gap-2">
-      <div class="text-lg font-bold font-mono text-emerald-400">5-Tier WAL/WOS</div>
+    <div class="my-3">
+      <div class="text-lg font-bold font-mono text-[#e5e1e4]">5-Tier WAL/WOS</div>
     </div>
-    <div class="flex items-center justify-between text-[10px] font-mono text-[#869397]">
+    <div class="flex items-center justify-between text-[11px] font-mono text-[#869397]">
       <span>{t('metric_engine_desc')}</span>
       <span class="text-white/40">{formattedDate}</span>
     </div>
